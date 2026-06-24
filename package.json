@@ -1,0 +1,35 @@
+{
+  "name": "messenger-container",
+  "version": "0.1.0",
+  "description": "Plataforma central de mensageria da Garagem (WhatsApp Business Tech Provider): normalizacao de mensagens, token por produto, templates/flows embutiveis via iFrame e base multitenant.",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GaragemOS/messenger-container.git"
+  },
+  "scripts": {
+    "start": "node src/index.ts",
+    "dev": "node --watch --env-file=.env src/index.ts",
+    "migrate": "node --env-file=.env src/db/migrate.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test",
+    "build:embed": "node scripts/build-embed.ts"
+  },
+  "dependencies": {
+    "argon2": "^0.41.1",
+    "fastify": "^5.2.0",
+    "jose": "^5.9.6",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.11.10",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.2"
+  }
+}
