@@ -1,13 +1,24 @@
 // Servidor HTTP (Fastify). No v1 expoe apenas health checks; rotas de auth,
 // API keys, embed e WhatsApp sao registradas nas fases seguintes.
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { pool } from "../db/pool.ts";
+import { authRoutes } from "./routes/auth.ts";
+import { CONSOLE_HTML } from "../console/page.ts";
 
 export function buildServer(): FastifyInstance {
   const app = Fastify({
     logger: { level: process.env.LOG_LEVEL ?? "info" },
     trustProxy: true,
   });
+
+  // Console interno (pagina de login/gestao).
+  const serveConsole = async (_req: FastifyRequest, reply: FastifyReply) =>
+    reply.type("text/html; charset=utf-8").send(CONSOLE_HTML);
+  app.get("/", serveConsole);
+  app.get("/console", serveConsole);
+
+  // Rotas de autenticacao.
+  app.register(authRoutes);
 
   // Liveness: o processo esta de pe.
   app.get("/healthz", async () => ({
