@@ -6,6 +6,7 @@ import { authRoutes } from "./routes/auth.ts";
 import { adminRoutes } from "./routes/admin.ts";
 import { embedRoutes } from "./routes/embed.ts";
 import { embedPublicRoutes } from "./routes/embed-public.ts";
+import { webhookRoutes } from "./routes/webhooks.ts";
 import { CONSOLE_HTML } from "../console/page.ts";
 
 export function buildServer(): FastifyInstance {
@@ -25,6 +26,7 @@ export function buildServer(): FastifyInstance {
   app.register(adminRoutes);
   app.register(embedRoutes);
   app.register(embedPublicRoutes);
+  app.register(webhookRoutes);
 
   // Liveness: o processo esta de pe.
   app.get("/healthz", async () => ({
