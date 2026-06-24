@@ -3,6 +3,8 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { pool } from "../db/pool.ts";
 import { authRoutes } from "./routes/auth.ts";
+import { adminRoutes } from "./routes/admin.ts";
+import { embedRoutes } from "./routes/embed.ts";
 import { CONSOLE_HTML } from "../console/page.ts";
 
 export function buildServer(): FastifyInstance {
@@ -17,8 +19,10 @@ export function buildServer(): FastifyInstance {
   app.get("/", serveConsole);
   app.get("/console", serveConsole);
 
-  // Rotas de autenticacao.
+  // Rotas de autenticacao, administracao (sessao) e embed (API key).
   app.register(authRoutes);
+  app.register(adminRoutes);
+  app.register(embedRoutes);
 
   // Liveness: o processo esta de pe.
   app.get("/healthz", async () => ({
