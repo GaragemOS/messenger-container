@@ -35,9 +35,16 @@ export const CONSOLE_HTML = `<!doctype html>
   .auth-card h1 { font-size:20px; margin:14px 0 4px; } .auth-card .sub { color:var(--muted); margin:0 0 20px; } .auth-card .btn { width:100%; padding:12px; margin-top:8px; }
   .link { background:none; color:var(--primary); padding:10px 0 0; font-size:13px; display:block; margin:0 auto; }
   .msg { font-size:13px; margin-top:12px; min-height:18px; } .msg.error { color:var(--danger); } .msg.ok { color:var(--ok); }
-  .app { height:100%; display:grid; grid-template-columns:260px 1fr; }
+  .app { height:100%; display:grid; grid-template-columns:220px 1fr; }
+  .app.collapsed { grid-template-columns:0 1fr; }
+  .app.collapsed .sidebar { display:none; }
+  .app.collapsed .topbar { padding-left:54px; }
+  .expand-btn { position:fixed; top:14px; left:10px; z-index:40; width:34px; height:34px; border-radius:8px; background:var(--panel); border:1px solid var(--border); color:var(--primary); font-size:16px; }
+  .logo-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .collapse-btn { background:none; color:var(--muted); font-size:18px; line-height:1; padding:4px 8px; border-radius:6px; }
+  .collapse-btn:hover { background:var(--bg); color:var(--text); }
   .sidebar { background:var(--panel); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:18px 14px; }
-  .sidebar .logo { font-weight:800; color:var(--primary); font-size:18px; padding:4px 8px 18px; }
+  .sidebar .logo { font-weight:800; color:var(--primary); font-size:18px; padding:4px 8px; }
   .side-head { display:flex; align-items:center; justify-content:space-between; padding:6px 8px; font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
   .side-list { margin-top:6px; overflow-y:auto; flex:1; }
   .side-item { padding:9px 10px; border-radius:8px; cursor:pointer; font-weight:500; }
@@ -69,7 +76,7 @@ export const CONSOLE_HTML = `<!doctype html>
   .modal-card { width:min(92vw,440px); background:var(--panel); border-radius:16px; padding:24px; } .modal-card h3 { margin:0 0 16px; font-size:16px; }
 
   .fb-top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; } .fb-top .in { max-width:320px; }
-  .fb { display:grid; grid-template-columns:210px 1fr 320px; gap:14px; align-items:start; }
+  .fb { display:grid; grid-template-columns:190px minmax(0,1fr) 300px; gap:14px; align-items:start; }
   @media (max-width:1100px){ .fb { grid-template-columns:1fr; } }
   .fb-pane { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
   .fb-pane h4 { margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
@@ -108,7 +115,7 @@ export const CONSOLE_HTML = `<!doctype html>
   .jl .ln { display:block; height:18px; border-radius:3px; color:transparent; } .jl .ln.hl { background:#D7DEFF; box-shadow:inset 3px 0 0 var(--primary); } .jl .ln.err { background:#FEE2E2; box-shadow:inset 3px 0 0 var(--danger); }
   .jt { position:relative; display:block; width:100%; height:440px; resize:vertical; border:0; outline:none; padding:10px 12px; font:12px/1.5 ui-monospace,monospace; background:transparent; color:var(--text); white-space:pre; overflow:auto; }
   .jerr { color:var(--danger); font-size:12px; margin-top:8px; min-height:16px; }
-  .stages { display:flex; gap:20px; overflow-x:auto; padding:4px 2px 16px; align-items:flex-start; }
+  .stages { display:flex; flex-wrap:wrap; gap:20px; padding:4px 2px 16px; align-items:flex-start; }
   .screen-col { flex:0 0 auto; }
   .scr-bar { display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:0 4px; }
   .scr-name { font-size:12px; font-weight:600; color:var(--muted); }
@@ -142,8 +149,9 @@ export const CONSOLE_HTML = `<!doctype html>
   </div>
 </div>
 <div class="app hidden" id="app">
+  <button class="expand-btn hidden" id="side-expand" title="Expandir menu">»</button>
   <aside class="sidebar">
-    <div class="logo">Garagem</div>
+    <div class="logo-row"><div class="logo">Garagem</div><button class="collapse-btn" id="side-collapse" title="Recolher menu">«</button></div>
     <div class="side-head"><span>Produtos</span><button class="icon-btn" id="b-new-product" title="Novo produto">+</button></div>
     <div class="side-list" id="product-list"></div>
     <div class="side-foot"><div class="ue" id="user-email"></div><button class="btn ghost sm" id="b-logout" style="width:100%">Sair</button></div>
@@ -174,6 +182,8 @@ export const CONSOLE_HTML = `<!doctype html>
   $("b-setpass").onclick = async function () { var r = await api("/auth/set-password", { email: setEmail, code: $("sp-code").value.trim(), password: $("sp-pass").value }); if (r.ok) { msg("li-msg", "Senha definida. Faça login.", "ok"); showAuth("login"); $("li-email").value = setEmail; } else { msg("sp-msg", (r.data && r.data.error) || "Erro.", "error"); } };
   $("b-login").onclick = async function () { var e = $("li-email").value.trim(); $("b-login").disabled = true; msg("li-msg", "Entrando...", ""); var r = await api("/auth/login", { email: e, password: $("li-pass").value }); $("b-login").disabled = false; if (r.ok) { $("user-email").textContent = (r.data && r.data.email) || e; showApp(); } else { msg("li-msg", (r.data && r.data.error) || "Credenciais inválidas.", "error"); } };
   $("b-logout").onclick = async function () { await api("/auth/logout", {}); selected = null; showAuth("login"); };
+  $("side-collapse").onclick = function () { $("app").classList.add("collapsed"); $("side-expand").classList.remove("hidden"); };
+  $("side-expand").onclick = function () { $("app").classList.remove("collapsed"); $("side-expand").classList.add("hidden"); };
   $("b-new-product").onclick = function () { $("np-modal").classList.remove("hidden"); }; $("np-cancel").onclick = function () { $("np-modal").classList.add("hidden"); };
   $("np-create").onclick = async function () { var origins = $("np-origins").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean); var r = await api("/api/products", { name: $("np-name").value.trim(), slug: $("np-slug").value.trim(), allowed_origins: origins }); if (r.ok) { $("np-name").value = ""; $("np-slug").value = ""; $("np-origins").value = ""; $("np-modal").classList.add("hidden"); selected = r.data.id; loadProducts(); } else { msg("np-msg", (r.data && r.data.error) || "Erro ao criar.", "error"); } };
 
