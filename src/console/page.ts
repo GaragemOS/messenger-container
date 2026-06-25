@@ -94,6 +94,7 @@ export const CONSOLE_HTML = `<!doctype html>
   [contenteditable]:focus { outline:none; }
   .e-h { font-size:18px; font-weight:700; color:#111; } .e-sh { font-size:15px; font-weight:600; color:#111; } .e-b { font-size:14px; color:#333; line-height:1.4; } .e-c { font-size:12px; color:#777; }
   .e-lab { font-size:13px; font-weight:500; color:#333; margin-bottom:5px; } .e-box { border:1px solid #d0d0d0; border-radius:8px; padding:11px 12px; font-size:13px; color:#999; background:#fafafa; } .e-help { font-size:11px; color:#999; margin-top:4px; }
+  .e-link { color:#0a7cff; font-weight:600; font-size:14px; text-align:center; padding:5px; }
   .e-opt { border:1px solid #e2e2e2; border-radius:8px; padding:9px 11px; font-size:13px; display:flex; align-items:center; gap:8px; margin-top:6px; color:#333; } .e-opt .mk { width:16px; height:16px; border:1.5px solid #bbb; border-radius:50%; flex:0 0 auto; } .e-opt.sq .mk { border-radius:4px; }
   .e-img { width:100%; border-radius:8px; display:block; } .ph-img { width:100%; height:120px; border-radius:8px; background:#eef0f5; display:grid; place-items:center; color:#9aa3b2; font-size:13px; }
   .prop .field { margin-bottom:12px; } .cnt { font-size:11px; color:var(--muted); text-align:right; margin-top:3px; } .cnt.over { color:var(--danger); font-weight:600; }
@@ -224,7 +225,7 @@ export const CONSOLE_HTML = `<!doctype html>
   }
 
   /* ===================== FLOWS ===================== */
-  var LIM = { heading: 80, subheading: 80, body: 4096, caption: 4096, footer: 35, inputLabel: 20, taLabel: 20, helper: 80, selLabel: 30, dateLabel: 40, title: 30 };
+  var LIM = { heading: 80, subheading: 80, body: 4096, caption: 4096, footer: 35, link: 35, inputLabel: 20, taLabel: 20, helper: 80, selLabel: 30, dateLabel: 40, title: 30 };
   function normalizeBuilder(j) { if (j && j.builder && j.builder.screens) return j.builder; return { screens: [{ id: "TELA_1", title: "Tela 1", variables: [], components: [] }] }; }
   function newEl(t) {
     if (t === "heading") return { t: t, text: "Título" }; if (t === "subheading") return { t: t, text: "Subtítulo" };
@@ -235,9 +236,10 @@ export const CONSOLE_HTML = `<!doctype html>
     if (t === "dropdown" || t === "radio" || t === "checkbox") return { t: t, name: "opcao", label: "Escolha uma opção", required: false, options: ["Opção 1", "Opção 2"] };
     if (t === "date") return { t: t, name: "data", label: "Data", required: false, helper: "" };
     if (t === "footer") return { t: t, label: "Continuar" };
+    if (t === "link") return { t: t, text: "Sim", action: "navigate", target: "", url: "" };
   }
   function isInput(t) { return ["input", "textarea", "dropdown", "radio", "checkbox", "date"].indexOf(t) >= 0; }
-  function limitOf(cp) { if (cp.t === "footer") return LIM.footer; if (cp.t === "input" || cp.t === "textarea") return LIM.inputLabel; if (cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") return LIM.selLabel; if (cp.t === "date") return LIM.dateLabel; return LIM[cp.t] || 9999; }
+  function limitOf(cp) { if (cp.t === "footer") return LIM.footer; if (cp.t === "link") return LIM.link; if (cp.t === "input" || cp.t === "textarea") return LIM.inputLabel; if (cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") return LIM.selLabel; if (cp.t === "date") return LIM.dateLabel; return LIM[cp.t] || 9999; }
   function textField(cp) { return cp.t === "footer" ? "label" : (isInput(cp.t) ? "label" : "text"); }
   function mapComp(cp) {
     if (cp.t === "heading") return { type: "TextHeading", text: cp.text || "" }; if (cp.t === "subheading") return { type: "TextSubheading", text: cp.text || "" };
@@ -247,6 +249,7 @@ export const CONSOLE_HTML = `<!doctype html>
     if (cp.t === "textarea") { var o2 = { type: "TextArea", name: cp.name, label: cp.label, required: !!cp.required }; if (cp.helper) o2["helper-text"] = cp.helper; if (cp.maxLength) o2["max-length"] = Number(cp.maxLength); return o2; }
     if (cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") { var tt = { dropdown: "Dropdown", radio: "RadioButtonsGroup", checkbox: "CheckboxGroup" }[cp.t]; return { type: tt, name: cp.name, label: cp.label, required: !!cp.required, "data-source": (cp.options || []).map(function (o, i) { return { id: String(i), title: o }; }) }; }
     if (cp.t === "date") { var o3 = { type: "DatePicker", name: cp.name, label: cp.label, required: !!cp.required }; if (cp.helper) o3["helper-text"] = cp.helper; return o3; }
+    if (cp.t === "link") { var oc = cp.action === "open_url" ? { name: "open_url", url: cp.url || "" } : { name: "navigate", next: { type: "screen", name: cp.target || "" }, payload: {} }; return { type: "EmbeddedLink", text: cp.text || "", "on-click-action": oc }; }
     return null;
   }
   function exportFlow(model) {
@@ -265,7 +268,7 @@ export const CONSOLE_HTML = `<!doctype html>
     var out = [];
     model.screens.forEach(function (s, si) {
       var prefix = "Tela " + (si + 1) + ": "; if ((s.title || "").length > LIM.title) out.push({ k: "err", m: prefix + "título com " + s.title.length + "/" + LIM.title });
-      var imgs = 0, footers = 0, names = {};
+      var imgs = 0, footers = 0, links = 0, names = {};
       (s.components || []).forEach(function (cp) {
         var tf = textField(cp), val = (cp[tf] || "");
         if (val.length > limitOf(cp)) out.push({ k: "err", m: prefix + 'texto "' + val.slice(0, 14) + '…" com ' + val.length + "/" + limitOf(cp) + " caracteres" });
@@ -274,10 +277,12 @@ export const CONSOLE_HTML = `<!doctype html>
         if (isInput(cp.t)) { if (names[cp.name]) out.push({ k: "err", m: prefix + 'name "' + cp.name + '" repetido' }); names[cp.name] = 1; }
         if (cp.t === "image") { imgs++; if (!cp.src) out.push({ k: "warn", m: prefix + "imagem sem arquivo" }); }
         if (cp.t === "footer") footers++;
+        if (cp.t === "link") { links++; if (!(cp.text || "").trim()) out.push({ k: "err", m: prefix + "link sem texto (obrigatório)" }); if ((cp.action || "navigate") === "navigate" && !cp.target) out.push({ k: "warn", m: prefix + "link sem tela de destino" }); if (cp.action === "open_url" && !(cp.url || "").trim()) out.push({ k: "warn", m: prefix + "link sem URL" }); }
         if ((cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") && (cp.options || []).length < 1) out.push({ k: "err", m: prefix + "lista sem opções" });
       });
       if (imgs > 3) out.push({ k: "err", m: prefix + "máximo de 3 imagens por tela (tem " + imgs + ")" });
-      if (footers > 1) out.push({ k: "err", m: prefix + "apenas um botão de rodapé por tela" });
+      if (footers > 1) out.push({ k: "err", m: prefix + "apenas um botão de rodapé por tela (regra do WhatsApp)" });
+      if (links > 2) out.push({ k: "err", m: prefix + "máximo de 2 links por tela (regra do WhatsApp; tem " + links + ")" });
       if (si === model.screens.length - 1 && footers === 0) out.push({ k: "warn", m: prefix + "tela final precisa de um botão para enviar" });
     });
     return out;
@@ -314,7 +319,7 @@ export const CONSOLE_HTML = `<!doctype html>
       var addS = el("button", "s", "+ Tela"); addS.onclick = function () { var n = st.model.screens.length + 1; st.model.screens.push({ id: "TELA_" + n, title: "Tela " + n, variables: [], components: [] }); st.scr = st.model.screens.length - 1; st.sel = -1; renderAll(); }; scrs.appendChild(addS); left.appendChild(scrs);
       if (st.model.screens.length > 1) { var del = el("button", "btn danger", "remover tela"); del.onclick = function () { st.model.screens.splice(st.scr, 1); st.scr = 0; st.sel = -1; renderAll(); }; left.appendChild(del); }
       left.appendChild(el("h4", null, "Elementos")); var pal = el("div", "pal");
-      [["heading", "Cabeçalho"], ["subheading", "Subtítulo"], ["body", "Parágrafo"], ["caption", "Legenda"], ["image", "Imagem"], ["input", "Campo de texto"], ["textarea", "Área de texto"], ["dropdown", "Lista suspensa"], ["radio", "Escolha única"], ["checkbox", "Múltipla escolha"], ["date", "Data"], ["footer", "Botão (rodapé)"]].forEach(function (t) { var b = el("button", null, t[1]); b.onclick = function () { screen().components.push(newEl(t[0])); st.sel = screen().components.length - 1; renderAll(); }; pal.appendChild(b); }); left.appendChild(pal);
+      [["heading", "Cabeçalho"], ["subheading", "Subtítulo"], ["body", "Parágrafo"], ["caption", "Legenda"], ["image", "Imagem"], ["input", "Campo de texto"], ["textarea", "Área de texto"], ["dropdown", "Lista suspensa"], ["radio", "Escolha única"], ["checkbox", "Múltipla escolha"], ["date", "Data"], ["footer", "Botão (rodapé)"], ["link", "Botão / link (Sim, Não…)"]].forEach(function (t) { var b = el("button", null, t[1]); b.onclick = function () { screen().components.push(newEl(t[0])); st.sel = screen().components.length - 1; renderAll(); }; pal.appendChild(b); }); left.appendChild(pal);
       left.appendChild(el("h4", null, "Variáveis"));
       (screen().variables || []).forEach(function (v, i) { var row = el("div", "var"); var chip = el("button", "chip", DREF + v.name + "}"); chip.title = "Inserir no texto selecionado"; chip.onclick = function () { document.execCommand("insertText", false, DREF + v.name + "}"); }; row.appendChild(chip); var x = el("button", "btn danger", "✕"); x.onclick = function () { screen().variables.splice(i, 1); renderAll(); }; row.appendChild(x); left.appendChild(row); });
       var vn = inp("nome_da_variavel"); var vadd = el("button", "btn sm ghost", "+ variável"); vadd.style.marginTop = "8px"; vadd.onclick = function () { var n = vn.value.trim().replace(/[^a-zA-Z0-9_]/g, "_"); if (!n) return; if (!screen().variables) screen().variables = []; screen().variables.push({ name: n, type: "string", example: "" }); renderAll(); }; left.appendChild(vn); left.appendChild(vadd);
@@ -350,6 +355,7 @@ export const CONSOLE_HTML = `<!doctype html>
         else if (cp.t === "caption") wrap.appendChild(editable("e-c", sIdx, idx, function () { return cp.text; }, function (v) { cp.text = v; }));
         else if (cp.t === "image") { if (cp.src) { var im = el("img", "e-img"); im.src = cp.src; wrap.appendChild(im); } else wrap.appendChild(el("div", "ph-img", "Imagem (envie no painel →)")); }
         else if (cp.t === "footer") { wrap.appendChild(editable("submit", sIdx, idx, function () { return cp.label; }, function (v) { cp.label = v; })); foot.appendChild(wrap); return; }
+        else if (cp.t === "link") wrap.appendChild(editable("e-link", sIdx, idx, function () { return cp.text; }, function (v) { cp.text = v; }));
         else if (isInput(cp.t)) { wrap.appendChild(editable("e-lab", sIdx, idx, function () { return cp.label; }, function (v) { cp.label = v; })); if (cp.t === "input" || cp.t === "textarea") wrap.appendChild(el("div", "e-box", cp.t === "textarea" ? "Texto longo..." : "Digite...")); else if (cp.t === "date") wrap.appendChild(el("div", "e-box", "DD/MM/AAAA  📅")); else { (cp.options || []).forEach(function (op) { var o = el("div", "e-opt" + (cp.t === "checkbox" ? " sq" : "")); o.appendChild(el("span", "mk")); o.appendChild(el("span", null, op)); wrap.appendChild(o); }); } if (cp.helper) wrap.appendChild(el("div", "e-help", cp.helper)); }
         else wrap.appendChild(el("div", "e-b", "(" + cp.t + ")"));
         if (cp.t !== "footer") body.appendChild(wrap);
@@ -384,7 +390,7 @@ export const CONSOLE_HTML = `<!doctype html>
       if (!cp) { right.appendChild(el("div", "muted", "Selecione um elemento no canvas para editar.")); }
       else {
         if (cp.t !== "image") {
-          var tf = textField(cp), lim = limitOf(cp); var lf = el("div", "field"); lf.appendChild(el("label", null, cp.t === "footer" ? "Texto do botão" : (isInput(cp.t) ? "Rótulo" : "Texto")));
+          var tf = textField(cp), lim = limitOf(cp); var lf = el("div", "field"); lf.appendChild(el("label", null, (cp.t === "footer" || cp.t === "link") ? "Texto do botão" : (isInput(cp.t) ? "Rótulo" : "Texto")));
           var ti = (cp.t === "body" || cp.t === "caption") ? el("textarea", "in") : el("input", "in"); ti.value = cp[tf] || ""; lf.appendChild(ti);
           var cnt = el("div", "cnt", (cp[tf] || "").length + " / " + lim + " caracteres"); if ((cp[tf] || "").length > lim) cnt.classList.add("over"); lf.appendChild(cnt); right.appendChild(lf);
           st.ui = { ti: ti, cnt: cnt, lim: lim, tf: tf };
@@ -395,6 +401,17 @@ export const CONSOLE_HTML = `<!doctype html>
         if (cp.t === "input") { var fi = el("div", "field"); fi.appendChild(el("label", null, "Tipo")); var ts = selOf(["text", "email", "number", "phone", "password", "passcode"], function (v) { return v; }, function (v) { return v; }); ts.value = cp.inputType || "text"; ts.onchange = function () { cp.inputType = ts.value; }; fi.appendChild(ts); right.appendChild(fi); }
         if (cp.t === "input" || cp.t === "textarea" || cp.t === "date") { var fh = el("div", "field"); fh.appendChild(el("label", null, "Texto de ajuda (máx 80)")); var hi = inp("ajuda", cp.helper); hi.oninput = function () { cp.helper = hi.value; renderStage(); renderValidationOnly(); }; fh.appendChild(hi); right.appendChild(fh); }
         if (cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") { right.appendChild(el("label", null, "Opções")); (cp.options || []).forEach(function (op, i) { var row = el("div", "opt-edit"); var oi = inp("opção", op); oi.oninput = function () { cp.options[i] = oi.value; renderStage(); }; row.appendChild(oi); var x = el("button", "btn danger", "✕"); x.onclick = function () { cp.options.splice(i, 1); renderAll(); }; row.appendChild(x); right.appendChild(row); }); var addo = el("button", "btn sm ghost", "+ opção"); addo.onclick = function () { cp.options.push("Nova opção"); renderAll(); }; right.appendChild(addo); }
+        if (cp.t === "link") {
+          var fa2 = el("div", "field"); fa2.appendChild(el("label", null, "Ação ao tocar"));
+          var as = selOf([["navigate", "Ir para uma tela"], ["open_url", "Abrir um link (URL)"]], function (v) { return v[0]; }, function (v) { return v[1]; }); as.value = cp.action || "navigate"; fa2.appendChild(as); right.appendChild(fa2);
+          var holder = el("div"); right.appendChild(holder);
+          var renderAct = function () {
+            holder.textContent = "";
+            if ((cp.action || "navigate") === "navigate") { var ff = el("div", "field"); ff.appendChild(el("label", null, "Tela de destino")); var ss = selOf(st.model.screens.map(function (s, i) { return { id: s.id, label: s.title || ("Tela " + (i + 1)) }; }), function (v) { return v.id; }, function (v) { return v.label; }); ss.value = cp.target || ""; ss.onchange = function () { cp.target = ss.value; renderValidationOnly(); }; ff.appendChild(ss); holder.appendChild(ff); }
+            else { var fu = el("div", "field"); fu.appendChild(el("label", null, "URL")); var ui = inp("https://...", cp.url); ui.oninput = function () { cp.url = ui.value; renderValidationOnly(); }; fu.appendChild(ui); holder.appendChild(fu); }
+          };
+          as.onchange = function () { cp.action = as.value; renderAct(); renderValidationOnly(); }; renderAct();
+        }
         var rm = el("button", "btn danger", "remover elemento"); rm.style.marginTop = "14px"; rm.onclick = function () { screen().components.splice(st.sel, 1); st.sel = -1; renderAll(); }; right.appendChild(rm);
       }
       var vh = el("h4", null, "Validação"); vh.style.marginTop = "16px"; right.appendChild(vh); valBox = el("div", "valbox"); right.appendChild(valBox); renderValidationOnly();
