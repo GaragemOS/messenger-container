@@ -36,7 +36,7 @@ export const CONSOLE_HTML = `<!doctype html>
   .link { background:none; color:var(--primary); padding:10px 0 0; font-size:13px; display:block; margin:0 auto; }
   .msg { font-size:13px; margin-top:12px; min-height:18px; } .msg.error { color:var(--danger); } .msg.ok { color:var(--ok); }
   .app { height:100%; display:grid; grid-template-columns:220px 1fr; }
-  .app.collapsed { grid-template-columns:0 1fr; }
+  .app.collapsed { grid-template-columns:1fr; }
   .app.collapsed .sidebar { display:none; }
   .app.collapsed .topbar { padding-left:54px; }
   .expand-btn { position:fixed; top:14px; left:10px; z-index:40; width:34px; height:34px; border-radius:8px; background:var(--panel); border:1px solid var(--border); color:var(--primary); font-size:16px; }
