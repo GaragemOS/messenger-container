@@ -6,6 +6,11 @@ import { createProduct, listProducts, getProduct } from "../../apikeys/products.
 import { createApiKey, listByProduct, revokeKey } from "../../apikeys/keys.repo.ts";
 import { generateApiKey } from "../../apikeys/keys.ts";
 import { fullScope } from "../../embed/scope.ts";
+import { mintEmbedToken } from "../../embed/token.ts";
+import { loadPrivateKey } from "../../embed/token-keys.ts";
+import { config } from "../../config/index.ts";
+
+const EMBED_CLASSES = ["templates", "flows", "metrics", "multitenant"];
 
 export async function adminRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("preHandler", requireSession);
@@ -64,5 +69,28 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     await revokeKey(id);
     return { ok: true };
+  });
+
+  // Cunha um embed token (escopo total) para o console pre-visualizar as telas.
+  app.post("/api/products/:id/embed-token", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { class: cls } = (req.body ?? {}) as { class?: string };
+    const product = await getProduct(id);
+    if (!product) {
+      reply.code(404);
+      return { error: "produto nao encontrado" };
+    }
+    if (!EMBED_CLASSES.includes(cls ?? "")) {
+      reply.code(400);
+      return { error: "class invalida" };
+    }
+    const token = await mintEmbedToken(await loadPrivateKey(), {
+      productId: id,
+      cls: cls!,
+      scope: fullScope(),
+      audience: product.allowed_origins,
+      ttlSeconds: config.embed.tokenTtlSeconds,
+    });
+    return { embed_token: token };
   });
 }
