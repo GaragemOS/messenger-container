@@ -342,17 +342,30 @@ export const CONSOLE_HTML = `<!doctype html>
     var smsg = el("div", "msg"); c.appendChild(smsg);
     var fb = el("div", "fb"); var left = el("div", "fb-pane"), center = el("div"), right = el("div", "fb-pane prop"); fb.appendChild(left); fb.appendChild(center); fb.appendChild(right); c.appendChild(fb);
     function screen() { return st.model.screens[st.scr]; }
+    st.history = [];
+    function hist() { var s = JSON.stringify(st.model); if (st.history.length && st.history[st.history.length - 1] === s) return; st.history.push(s); if (st.history.length > 80) st.history.shift(); }
+    function undo() { if (!st.history.length) return; var prev = st.history.pop(); try { st.model = JSON.parse(prev); } catch (e) { return; } if (st.scr >= st.model.screens.length) st.scr = Math.max(0, st.model.screens.length - 1); st.sel = -1; renderAll(); }
+    function editingNow() { var a = document.activeElement; return !!(a && (a.isContentEditable || a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")); }
+    if (window.__builderKey) document.removeEventListener("keydown", window.__builderKey);
+    function onKey(e) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) { if (editingNow()) return; e.preventDefault(); undo(); return; }
+      if (e.key === "Delete") { if (editingNow()) return; if (st.sel >= 0 && screen().components[st.sel]) { hist(); screen().components.splice(st.sel, 1); st.sel = -1; renderAll(); } }
+    }
+    document.addEventListener("keydown", onKey); window.__builderKey = onKey;
+    back.onclick = function () { document.removeEventListener("keydown", onKey); window.__builderKey = null; loadFlows(p, c); };
+
+    function selectScreen(sIdx) { st.scr = sIdx; st.sel = -1; markActiveScreen(); markSel(); if (st.jsonMode) renderJson(); else renderRight(); }
 
     function renderLeft() {
       left.textContent = "";
       var scrs = el("div", "scrs"); st.model.screens.forEach(function (s, i) { var b = el("button", "s" + (i === st.scr ? " active" : ""), s.title || ("Tela " + (i + 1))); b.onclick = function () { st.scr = i; st.sel = -1; renderAll(); }; scrs.appendChild(b); });
-      var addS = el("button", "s", "+ Tela"); addS.onclick = function () { var n = st.model.screens.length + 1; st.model.screens.push({ id: "TELA_" + n, title: "Tela " + n, variables: [], components: [] }); st.scr = st.model.screens.length - 1; st.sel = -1; renderAll(); }; scrs.appendChild(addS); left.appendChild(scrs);
-      if (st.model.screens.length > 1) { var del = el("button", "btn danger", "remover tela"); del.onclick = function () { st.model.screens.splice(st.scr, 1); st.scr = 0; st.sel = -1; renderAll(); }; left.appendChild(del); }
+      var addS = el("button", "s", "+ Tela"); addS.onclick = function () { hist(); var n = st.model.screens.length + 1; st.model.screens.push({ id: "TELA_" + n, title: "Tela " + n, variables: [], components: [] }); st.scr = st.model.screens.length - 1; st.sel = -1; renderAll(); }; scrs.appendChild(addS); left.appendChild(scrs);
+      if (st.model.screens.length > 1) { var del = el("button", "btn danger", "remover tela"); del.onclick = function () { hist(); st.model.screens.splice(st.scr, 1); st.scr = 0; st.sel = -1; renderAll(); }; left.appendChild(del); }
       left.appendChild(el("h4", null, "Elementos")); var pal = el("div", "pal");
-      [["heading", "Cabeçalho"], ["subheading", "Subtítulo"], ["body", "Parágrafo"], ["caption", "Legenda"], ["image", "Imagem"], ["input", "Campo de texto"], ["textarea", "Área de texto"], ["dropdown", "Lista suspensa"], ["radio", "Escolha única"], ["checkbox", "Múltipla escolha"], ["date", "Data"], ["footer", "Botão (rodapé)"], ["link", "Botão / link (Sim, Não…)"]].forEach(function (t) { var b = el("button", null, t[1]); b.onclick = function () { screen().components.push(newEl(t[0])); st.sel = screen().components.length - 1; renderAll(); }; pal.appendChild(b); }); left.appendChild(pal);
+      [["heading", "Cabeçalho"], ["subheading", "Subtítulo"], ["body", "Parágrafo"], ["caption", "Legenda"], ["image", "Imagem"], ["input", "Campo de texto"], ["textarea", "Área de texto"], ["dropdown", "Lista suspensa"], ["radio", "Escolha única"], ["checkbox", "Múltipla escolha"], ["date", "Data"], ["footer", "Botão (rodapé)"], ["link", "Botão / link (Sim, Não…)"]].forEach(function (t) { var b = el("button", null, t[1]); b.onclick = function () { hist(); screen().components.push(newEl(t[0])); st.sel = screen().components.length - 1; renderAll(); }; pal.appendChild(b); }); left.appendChild(pal);
       left.appendChild(el("h4", null, "Variáveis"));
-      (screen().variables || []).forEach(function (v, i) { var row = el("div", "var"); var chip = el("button", "chip", DREF + v.name + "}"); chip.title = "Inserir no texto selecionado"; chip.onclick = function () { document.execCommand("insertText", false, DREF + v.name + "}"); }; row.appendChild(chip); var x = el("button", "btn danger", "✕"); x.onclick = function () { screen().variables.splice(i, 1); renderAll(); }; row.appendChild(x); left.appendChild(row); });
-      var vn = inp("nome_da_variavel"); var vadd = el("button", "btn sm ghost", "+ variável"); vadd.style.marginTop = "8px"; vadd.onclick = function () { var n = vn.value.trim().replace(/[^a-zA-Z0-9_]/g, "_"); if (!n) return; if (!screen().variables) screen().variables = []; screen().variables.push({ name: n, type: "string", example: "" }); renderAll(); }; left.appendChild(vn); left.appendChild(vadd);
+      (screen().variables || []).forEach(function (v, i) { var row = el("div", "var"); var chip = el("button", "chip", DREF + v.name + "}"); chip.title = "Inserir no texto selecionado"; chip.onclick = function () { document.execCommand("insertText", false, DREF + v.name + "}"); }; row.appendChild(chip); var x = el("button", "btn danger", "✕"); x.onclick = function () { hist(); screen().variables.splice(i, 1); renderAll(); }; row.appendChild(x); left.appendChild(row); });
+      var vn = inp("nome_da_variavel"); var vadd = el("button", "btn sm ghost", "+ variável"); vadd.style.marginTop = "8px"; vadd.onclick = function () { var n = vn.value.trim().replace(/[^a-zA-Z0-9_]/g, "_"); if (!n) return; hist(); if (!screen().variables) screen().variables = []; screen().variables.push({ name: n, type: "string", example: "" }); renderAll(); }; left.appendChild(vn); left.appendChild(vadd);
     }
 
     function key(s, i) { return s + "_" + i; }
@@ -361,13 +374,14 @@ export const CONSOLE_HTML = `<!doctype html>
     function markActiveScreen() { var bars = center.querySelectorAll(".scr-bar"); for (var i = 0; i < bars.length; i++) bars[i].classList.toggle("active", i === st.scr); }
     function markSel() { for (var k in st.nodes) { if (st.nodes[k]) st.nodes[k].classList.toggle("sel", k === key(st.scr, st.sel)); } if (st.jsonMode) highlightJsonLines(st.sel); }
     function selectEl(sIdx, idx) { var changed = st.scr !== sIdx; st.scr = sIdx; st.sel = idx; markSel(); markActiveScreen(); if (st.jsonMode) { if (changed) renderJson(); else highlightJsonLines(idx); } else renderRight(); }
-    function editable(cls, sIdx, idx, getV, setV) { var d = el("div", cls); d.contentEditable = "true"; d.spellcheck = false; d.textContent = getV() || ""; st.textNodes[key(sIdx, idx)] = d; d.onfocus = function () { selectEl(sIdx, idx); }; d.oninput = function () { setV(d.textContent); if (st.ui.ti && st.scr === sIdx && st.sel === idx) st.ui.ti.value = d.textContent; updCounter(); renderValidationOnly(); }; return d; }
-    function removeScreen(i) { st.model.screens.splice(i, 1); if (st.scr >= st.model.screens.length) st.scr = st.model.screens.length - 1; st.sel = -1; renderAll(); }
-    function reorderScreen(from, to) { if (from == null || to == null || from === to) return; var a = st.model.screens; var item = a[from]; a.splice(from, 1); if (to > from) to--; a.splice(to, 0, item); st.scr = to; st.sel = -1; renderAll(); }
+    function editable(cls, sIdx, idx, getV, setV) { var d = el("div", cls); d.contentEditable = "true"; d.spellcheck = false; d.textContent = getV() || ""; st.textNodes[key(sIdx, idx)] = d; d.onmousedown = function (e) { if (st.scr !== sIdx || st.sel !== idx) { e.preventDefault(); selectEl(sIdx, idx); } }; d.onfocus = function () { hist(); selectEl(sIdx, idx); }; d.oninput = function () { setV(d.textContent); if (st.ui.ti && st.scr === sIdx && st.sel === idx) st.ui.ti.value = d.textContent; updCounter(); renderValidationOnly(); }; return d; }
+    function removeScreen(i) { hist(); st.model.screens.splice(i, 1); if (st.scr >= st.model.screens.length) st.scr = st.model.screens.length - 1; st.sel = -1; renderAll(); }
+    function reorderScreen(from, to) { if (from == null || to == null || from === to) return; hist(); var a = st.model.screens; var item = a[from]; a.splice(from, 1); if (to > from) to--; a.splice(to, 0, item); st.scr = to; st.sel = -1; renderAll(); }
 
     function buildSheet(s, sIdx) {
       var sheet = el("div", "sheet"); var sh = el("div", "sheet-head"); sh.appendChild(el("span", "x", "✕"));
-      var stt = el("div", "st"); stt.contentEditable = "true"; stt.spellcheck = false; stt.textContent = s.title || ""; stt.onfocus = function () { st.scr = sIdx; st.sel = -1; markActiveScreen(); if (!st.jsonMode) renderRight(); }; stt.oninput = function () { s.title = stt.textContent; renderValidationOnly(); }; sh.appendChild(stt); sheet.appendChild(sh);
+      var stt = el("div", "st"); stt.contentEditable = "true"; stt.spellcheck = false; stt.textContent = s.title || ""; stt.onfocus = function () { hist(); st.scr = sIdx; st.sel = -1; markActiveScreen(); markSel(); if (!st.jsonMode) renderRight(); }; stt.oninput = function () { s.title = stt.textContent; renderValidationOnly(); }; sh.appendChild(stt); sheet.appendChild(sh);
+      sheet.onclick = function (e) { if (e.target.closest && (e.target.closest(".el") || e.target.closest(".sheet-head"))) return; selectScreen(sIdx); };
       var body = el("div", "sheet-body"); var foot = el("div", "sheet-foot");
       (s.components || []).forEach(function (cp, idx) {
         var wrap = el("div", "el" + (sIdx === st.scr && idx === st.sel ? " sel" : "")); st.nodes[key(sIdx, idx)] = wrap; wrap.appendChild(el("div", "drag", "⠿"));
@@ -376,7 +390,7 @@ export const CONSOLE_HTML = `<!doctype html>
           wrap.ondragstart = function (e) { st.drag = idx; st.dragScr = sIdx; wrap.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.stopPropagation(); };
           wrap.ondragend = function () { wrap.classList.remove("dragging"); clearDrops(); st.drag = null; };
           wrap.ondragover = function (e) { if (st.drag == null || st.dragScr !== sIdx || st.drag === idx) return; e.preventDefault(); e.stopPropagation(); var r = wrap.getBoundingClientRect(); var after = (e.clientY - r.top) > r.height / 2; clearDrops(); wrap.classList.add(after ? "drop-after" : "drop-before"); st.dropTo = after ? idx + 1 : idx; };
-          wrap.ondrop = function (e) { if (st.drag == null || st.dragScr !== sIdx) return; e.preventDefault(); e.stopPropagation(); clearDrops(); var from = st.drag, to = st.dropTo; if (to == null) return; var a = s.components; var item = a[from]; a.splice(from, 1); if (to > from) to--; a.splice(to, 0, item); st.scr = sIdx; st.sel = to; st.drag = null; renderStage(); if (!st.jsonMode) renderRight(); else { rebuildJsonRanges(); highlightJsonLines(st.sel); } };
+          wrap.ondrop = function (e) { if (st.drag == null || st.dragScr !== sIdx) return; e.preventDefault(); e.stopPropagation(); clearDrops(); var from = st.drag, to = st.dropTo; if (to == null) return; hist(); var a = s.components; var item = a[from]; a.splice(from, 1); if (to > from) to--; a.splice(to, 0, item); st.scr = sIdx; st.sel = to; st.drag = null; renderStage(); if (!st.jsonMode) renderRight(); else { rebuildJsonRanges(); highlightJsonLines(st.sel); } };
         }
         wrap.onclick = function (e) { if (e.target.getAttribute && e.target.getAttribute("contenteditable") === "true") return; selectEl(sIdx, idx); };
         if (cp.t === "heading") wrap.appendChild(editable("e-h", sIdx, idx, function () { return cp.text; }, function (v) { cp.text = v; }));
@@ -400,7 +414,7 @@ export const CONSOLE_HTML = `<!doctype html>
         var col = el("div", "screen-col");
         var bar = el("div", "scr-bar" + (sIdx === st.scr ? " active" : ""));
         var dh = el("div", "scr-drag", "⠿"); dh.draggable = true; dh.ondragstart = function (e) { st.screenDrag = sIdx; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text", "s"); }; bar.appendChild(dh);
-        bar.appendChild(el("span", "scr-name", "Tela " + (sIdx + 1)));
+        var snm = el("span", "scr-name", "Tela " + (sIdx + 1)); snm.style.cursor = "pointer"; snm.title = "Selecionar tela"; snm.onclick = function () { selectScreen(sIdx); }; bar.appendChild(snm);
         if (st.model.screens.length > 1) { var rmb = el("button", "scr-rm", "✕"); rmb.title = "Remover tela"; rmb.onclick = function () { removeScreen(sIdx); }; bar.appendChild(rmb); }
         col.ondragover = function (e) { if (st.screenDrag == null) return; e.preventDefault(); var r = col.getBoundingClientRect(); var after = (e.clientX - r.left) > r.width / 2; clearScreenDrops(); col.classList.add(after ? "sd-after" : "sd-before"); st.screenDropTo = after ? sIdx + 1 : sIdx; };
         col.ondrop = function (e) { if (st.screenDrag == null) return; e.preventDefault(); var f = st.screenDrag, t = st.screenDropTo; st.screenDrag = null; clearScreenDrops(); reorderScreen(f, t); };
@@ -417,32 +431,39 @@ export const CONSOLE_HTML = `<!doctype html>
     function renderRight() {
       if (st.jsonMode) { renderJson(); return; }
       right.textContent = ""; right.appendChild(el("h4", null, "Propriedades")); var cp = screen().components[st.sel]; st.ui = {};
-      if (!cp) { right.appendChild(el("div", "muted", "Selecione um elemento no canvas para editar.")); }
+      if (!cp) {
+        var sf = el("div", "field"); sf.appendChild(el("label", null, "Título da tela (máx " + LIM.title + ")"));
+        var sti = inp("Título da tela", screen().title); sf.appendChild(sti);
+        var scc = el("div", "cnt", (screen().title || "").length + " / " + LIM.title + " caracteres"); if ((screen().title || "").length > LIM.title) scc.classList.add("over"); sf.appendChild(scc);
+        sti.onfocus = hist; sti.oninput = function () { screen().title = sti.value; scc.textContent = (sti.value || "").length + " / " + LIM.title + " caracteres"; scc.classList.toggle("over", (sti.value || "").length > LIM.title); renderStage(); renderValidationOnly(); };
+        right.appendChild(sf);
+        right.appendChild(el("div", "muted", "Clique num elemento para editá-lo, ou numa área vazia da tela para selecioná-la. Delete remove o elemento selecionado; Ctrl+Z desfaz."));
+      }
       else {
         if (cp.t !== "image") {
           var tf = textField(cp), lim = limitOf(cp); var lf = el("div", "field"); lf.appendChild(el("label", null, (cp.t === "footer" || cp.t === "link") ? "Texto do botão" : (isInput(cp.t) ? "Rótulo" : "Texto")));
-          var ti = (cp.t === "body" || cp.t === "caption") ? el("textarea", "in") : el("input", "in"); ti.value = cp[tf] || ""; lf.appendChild(ti);
+          var ti = (cp.t === "body" || cp.t === "caption") ? el("textarea", "in") : el("input", "in"); ti.value = cp[tf] || ""; ti.onfocus = hist; lf.appendChild(ti);
           var cnt = el("div", "cnt", (cp[tf] || "").length + " / " + lim + " caracteres"); if ((cp[tf] || "").length > lim) cnt.classList.add("over"); lf.appendChild(cnt); right.appendChild(lf);
           st.ui = { ti: ti, cnt: cnt, lim: lim, tf: tf };
           ti.oninput = function () { cp[tf] = ti.value; var tn = st.textNodes[st.scr + "_" + st.sel]; if (tn) tn.textContent = ti.value; updCounter(); renderValidationOnly(); };
         }
-        if (cp.t === "image") { var f = el("div", "field"); f.appendChild(el("label", null, "Arquivo (JPEG/PNG, ≤300KB)")); var fileIn = document.createElement("input"); fileIn.type = "file"; fileIn.accept = "image/png,image/jpeg"; fileIn.className = "in"; fileIn.onchange = function () { var file = fileIn.files[0]; if (!file) return; if (file.size > 300 * 1024) { alert("Imagem acima de 300KB."); return; } var rd = new FileReader(); rd.onload = function () { cp.src = rd.result; renderStage(); }; rd.readAsDataURL(file); }; f.appendChild(fileIn); right.appendChild(f); var fa = el("div", "field"); fa.appendChild(el("label", null, "Texto alternativo")); var ai = inp("descrição", cp.alt); ai.oninput = function () { cp.alt = ai.value; }; fa.appendChild(ai); right.appendChild(fa); }
-        if (isInput(cp.t)) { var fn = el("div", "field"); fn.appendChild(el("label", null, "name (identificador)")); var ni = inp("name", cp.name); ni.oninput = function () { cp.name = ni.value.replace(/[^a-zA-Z0-9_]/g, "_"); renderValidationOnly(); }; fn.appendChild(ni); right.appendChild(fn); var tg = el("label", "toggle"); var ck = document.createElement("input"); ck.type = "checkbox"; ck.checked = !!cp.required; ck.onchange = function () { cp.required = ck.checked; }; tg.appendChild(ck); tg.appendChild(document.createTextNode("Obrigatório")); right.appendChild(tg); }
-        if (cp.t === "input") { var fi = el("div", "field"); fi.appendChild(el("label", null, "Tipo")); var ts = selOf(["text", "email", "number", "phone", "password", "passcode"], function (v) { return v; }, function (v) { return v; }); ts.value = cp.inputType || "text"; ts.onchange = function () { cp.inputType = ts.value; }; fi.appendChild(ts); right.appendChild(fi); }
-        if (cp.t === "input" || cp.t === "textarea" || cp.t === "date") { var fh = el("div", "field"); fh.appendChild(el("label", null, "Texto de ajuda (máx 80)")); var hi = inp("ajuda", cp.helper); hi.oninput = function () { cp.helper = hi.value; renderStage(); renderValidationOnly(); }; fh.appendChild(hi); right.appendChild(fh); }
-        if (cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") { right.appendChild(el("label", null, "Opções")); (cp.options || []).forEach(function (op, i) { var row = el("div", "opt-edit"); var oi = inp("opção", op); oi.oninput = function () { cp.options[i] = oi.value; renderStage(); }; row.appendChild(oi); var x = el("button", "btn danger", "✕"); x.onclick = function () { cp.options.splice(i, 1); renderAll(); }; row.appendChild(x); right.appendChild(row); }); var addo = el("button", "btn sm ghost", "+ opção"); addo.onclick = function () { cp.options.push("Nova opção"); renderAll(); }; right.appendChild(addo); }
+        if (cp.t === "image") { var f = el("div", "field"); f.appendChild(el("label", null, "Arquivo (JPEG/PNG, ≤300KB)")); var fileIn = document.createElement("input"); fileIn.type = "file"; fileIn.accept = "image/png,image/jpeg"; fileIn.className = "in"; fileIn.onchange = function () { var file = fileIn.files[0]; if (!file) return; if (file.size > 300 * 1024) { alert("Imagem acima de 300KB."); return; } hist(); var rd = new FileReader(); rd.onload = function () { cp.src = rd.result; renderStage(); }; rd.readAsDataURL(file); }; f.appendChild(fileIn); right.appendChild(f); var fa = el("div", "field"); fa.appendChild(el("label", null, "Texto alternativo")); var ai = inp("descrição", cp.alt); ai.onfocus = hist; ai.oninput = function () { cp.alt = ai.value; }; fa.appendChild(ai); right.appendChild(fa); }
+        if (isInput(cp.t)) { var fn = el("div", "field"); fn.appendChild(el("label", null, "name (identificador)")); var ni = inp("name", cp.name); ni.onfocus = hist; ni.oninput = function () { cp.name = ni.value.replace(/[^a-zA-Z0-9_]/g, "_"); renderValidationOnly(); }; fn.appendChild(ni); right.appendChild(fn); var tg = el("label", "toggle"); var ck = document.createElement("input"); ck.type = "checkbox"; ck.checked = !!cp.required; ck.onchange = function () { hist(); cp.required = ck.checked; }; tg.appendChild(ck); tg.appendChild(document.createTextNode("Obrigatório")); right.appendChild(tg); }
+        if (cp.t === "input") { var fi = el("div", "field"); fi.appendChild(el("label", null, "Tipo")); var ts = selOf(["text", "email", "number", "phone", "password", "passcode"], function (v) { return v; }, function (v) { return v; }); ts.value = cp.inputType || "text"; ts.onchange = function () { hist(); cp.inputType = ts.value; }; fi.appendChild(ts); right.appendChild(fi); }
+        if (cp.t === "input" || cp.t === "textarea" || cp.t === "date") { var fh = el("div", "field"); fh.appendChild(el("label", null, "Texto de ajuda (máx 80)")); var hi = inp("ajuda", cp.helper); hi.onfocus = hist; hi.oninput = function () { cp.helper = hi.value; renderStage(); renderValidationOnly(); }; fh.appendChild(hi); right.appendChild(fh); }
+        if (cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") { right.appendChild(el("label", null, "Opções")); (cp.options || []).forEach(function (op, i) { var row = el("div", "opt-edit"); var oi = inp("opção", op); oi.onfocus = hist; oi.oninput = function () { cp.options[i] = oi.value; renderStage(); }; row.appendChild(oi); var x = el("button", "btn danger", "✕"); x.onclick = function () { hist(); cp.options.splice(i, 1); renderAll(); }; row.appendChild(x); right.appendChild(row); }); var addo = el("button", "btn sm ghost", "+ opção"); addo.onclick = function () { hist(); cp.options.push("Nova opção"); renderAll(); }; right.appendChild(addo); }
         if (cp.t === "link") {
           var fa2 = el("div", "field"); fa2.appendChild(el("label", null, "Ação ao tocar"));
-          var as = selOf([["navigate", "Ir para uma tela"], ["open_url", "Abrir um link (URL)"]], function (v) { return v[0]; }, function (v) { return v[1]; }); as.value = cp.action || "navigate"; fa2.appendChild(as); right.appendChild(fa2);
+          var as = selOf([["navigate", "Ir para uma tela"], ["open_url", "Abrir um link (URL)"]], function (v) { return v[0]; }, function (v) { return v[1]; }); as.value = cp.action || "navigate"; as.onchange = function () { hist(); }; fa2.appendChild(as); right.appendChild(fa2);
           var holder = el("div"); right.appendChild(holder);
           var renderAct = function () {
             holder.textContent = "";
-            if ((cp.action || "navigate") === "navigate") { var ff = el("div", "field"); ff.appendChild(el("label", null, "Tela de destino")); var ss = selOf(st.model.screens.map(function (s, i) { return { id: s.id, label: s.title || ("Tela " + (i + 1)) }; }), function (v) { return v.id; }, function (v) { return v.label; }); ss.value = cp.target || ""; ss.onchange = function () { cp.target = ss.value; renderValidationOnly(); }; ff.appendChild(ss); holder.appendChild(ff); }
-            else { var fu = el("div", "field"); fu.appendChild(el("label", null, "URL")); var ui = inp("https://...", cp.url); ui.oninput = function () { cp.url = ui.value; renderValidationOnly(); }; fu.appendChild(ui); holder.appendChild(fu); }
+            if ((cp.action || "navigate") === "navigate") { var ff = el("div", "field"); ff.appendChild(el("label", null, "Tela de destino")); var ss = selOf(st.model.screens.map(function (s, i) { return { id: s.id, label: s.title || ("Tela " + (i + 1)) }; }), function (v) { return v.id; }, function (v) { return v.label; }); ss.value = cp.target || ""; ss.onchange = function () { hist(); cp.target = ss.value; renderValidationOnly(); }; ff.appendChild(ss); holder.appendChild(ff); }
+            else { var fu = el("div", "field"); fu.appendChild(el("label", null, "URL")); var ui = inp("https://...", cp.url); ui.onfocus = hist; ui.oninput = function () { cp.url = ui.value; renderValidationOnly(); }; fu.appendChild(ui); holder.appendChild(fu); }
           };
           as.onchange = function () { cp.action = as.value; renderAct(); renderValidationOnly(); }; renderAct();
         }
-        var rm = el("button", "btn danger", "remover elemento"); rm.style.marginTop = "14px"; rm.onclick = function () { screen().components.splice(st.sel, 1); st.sel = -1; renderAll(); }; right.appendChild(rm);
+        var rm = el("button", "btn danger", "remover elemento"); rm.style.marginTop = "14px"; rm.onclick = function () { hist(); screen().components.splice(st.sel, 1); st.sel = -1; renderAll(); }; right.appendChild(rm);
       }
       var vh = el("h4", null, "Validação"); vh.style.marginTop = "16px"; right.appendChild(vh); valBox = el("div", "valbox"); right.appendChild(valBox); renderValidationOnly();
     }
