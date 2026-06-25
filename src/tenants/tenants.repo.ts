@@ -53,6 +53,24 @@ export async function createWaba(
   return r.rows[0]!;
 }
 
+export interface WabaRow {
+  id: string;
+  waba_id_meta: string;
+  name: string | null;
+  company_id: string;
+  company_name: string;
+}
+
+export async function listWabas(productId: string): Promise<WabaRow[]> {
+  const r = await query<WabaRow>(
+    `SELECT w.id, w.waba_id_meta, w.name, cc.id AS company_id, cc.name AS company_name
+     FROM wabas w JOIN client_companies cc ON cc.id = w.client_company_id
+     WHERE cc.product_id = $1 ORDER BY cc.name, w.created_at`,
+    [productId],
+  );
+  return r.rows;
+}
+
 export async function getWabaCompany(productId: string, wabaId: string): Promise<{ company_id: string } | null> {
   const r = await query<{ company_id: string }>(
     `SELECT w.client_company_id AS company_id FROM wabas w

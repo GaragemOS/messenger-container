@@ -83,6 +83,15 @@ export const CONSOLE_HTML = `<!doctype html>
   .tab.active { color: var(--primary); background: var(--primary-container); }
   .tab-body { min-height: 120px; }
   .screen-frame { width: 100%; border: 0; min-height: 240px; display: block; border-radius: 12px; background: var(--surface); }
+  .formcard { background: var(--surface); border: 1px solid var(--outline); border-radius: 14px; padding: 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .subcard { background: var(--surface); border: 1px solid var(--outline); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .inp-mini, .inp-sel, .ta { padding: 9px 12px; font-size: 13px; border: 1px solid var(--outline); border-radius: 10px; background: transparent; color: var(--on-surface); flex: 1; min-width: 120px; outline: none; }
+  .inp-mini:focus, .inp-sel:focus, .ta:focus { border-color: var(--primary); }
+  .ta { width: 100%; min-height: 70px; resize: vertical; font-family: inherit; }
+  .miniform { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+  .miniform button { flex: 0 0 auto; }
+  .list-row { padding: 9px 0; border-bottom: 1px solid var(--outline); font-size: 14px; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .list-row:last-child { border-bottom: 0; }
 </style>
 </head>
 <body>
@@ -255,23 +264,149 @@ export const CONSOLE_HTML = `<!doctype html>
 
   function renderTab(p, tab, body) {
     body.textContent = "";
-    if (tab === "keys") {
-      var box = el("div"); box.id = "keys-box"; body.appendChild(box);
-      var genBtn = el("button", "btn-sm", "Gerar nova chave"); genBtn.style.marginTop = "12px";
-      genBtn.onclick = function () { createKey(p.id); };
-      body.appendChild(genBtn);
-      var rb = el("div"); rb.id = "reveal-box"; body.appendChild(rb);
-      loadKeys(p.id);
-      return;
-    }
-    body.appendChild(el("p", "empty", "Carregando tela..."));
+    if (tab === "keys") { renderKeys(p, body); return; }
+    if (tab === "multitenant") { loadMultitenant(p, body); return; }
+    if (tab === "templates") { loadTemplates(p, body); return; }
+    if (tab === "flows") { loadFlows(p, body); return; }
+    body.appendChild(el("p", "empty", "Carregando..."));
     api("/api/products/" + p.id + "/embed-token", { class: tab }).then(function (r) {
       body.textContent = "";
-      if (!r.ok || !r.data.embed_token) { body.appendChild(el("p", "empty", "Não foi possível carregar a tela.")); return; }
+      if (!r.ok || !r.data.embed_token) { body.appendChild(el("p", "empty", "Não foi possível carregar.")); return; }
       var f = document.createElement("iframe");
       f.className = "screen-frame";
       f.src = "/v1/screen/" + tab + "?t=" + encodeURIComponent(r.data.embed_token);
       body.appendChild(f);
+    });
+  }
+
+  function renderKeys(p, body) {
+    var box = el("div"); box.id = "keys-box"; body.appendChild(box);
+    var genBtn = el("button", "btn-sm", "Gerar nova chave"); genBtn.style.marginTop = "12px";
+    genBtn.onclick = function () { createKey(p.id); };
+    body.appendChild(genBtn);
+    var rb = el("div"); rb.id = "reveal-box"; body.appendChild(rb);
+    loadKeys(p.id);
+  }
+
+  function inp(ph, type) { var i = document.createElement("input"); i.className = "inp-mini"; i.placeholder = ph; if (type) i.type = type; return i; }
+  function sel(items, valFn, labFn) { var s = document.createElement("select"); s.className = "inp-sel"; items.forEach(function (it) { var o = document.createElement("option"); o.value = valFn(it); o.textContent = labFn(it); s.appendChild(o); }); return s; }
+  function selRaw(vals) { return sel(vals, function (v) { return v; }, function (v) { return v; }); }
+  function ta(ph) { var t = document.createElement("textarea"); t.className = "ta"; t.placeholder = ph; return t; }
+  function miniForm(inputs, label, onSubmit) { var w = el("div", "miniform"); inputs.forEach(function (i) { w.appendChild(i); }); var b = el("button", "btn-sm", label); b.onclick = onSubmit; w.appendChild(b); return w; }
+
+  async function loadMultitenant(p, body) {
+    body.textContent = "";
+    var fc = el("div", "formcard");
+    fc.appendChild(el("div", "section-title", "Nova empresa cliente"));
+    var nm = inp("Nome da empresa"), ext = inp("Referência externa (opcional)");
+    fc.appendChild(miniForm([nm, ext], "Adicionar empresa", async function () {
+      if (!nm.value.trim()) return;
+      await api("/api/products/" + p.id + "/tenants", { name: nm.value.trim(), external_ref: ext.value.trim() || null });
+      loadMultitenant(p, body);
+    }));
+    body.appendChild(fc);
+
+    var r = await apiGet("/api/products/" + p.id + "/tenants");
+    var companies = (r.data && r.data.companies) || [], wabas = (r.data && r.data.wabas) || [], numbers = (r.data && r.data.numbers) || [];
+    body.appendChild(el("div", "section-title", "Empresas (" + companies.length + ")"));
+    if (!companies.length) { body.appendChild(el("p", "empty", "Nenhuma empresa cadastrada.")); return; }
+    companies.forEach(function (c) {
+      var card = el("div", "subcard");
+      card.appendChild(el("div", "pname", c.name));
+      if (c.external_ref) card.appendChild(el("div", "muted", "ref: " + c.external_ref));
+      wabas.filter(function (w) { return w.company_id === c.id; }).forEach(function (w) {
+        card.appendChild(el("div", "muted", "WABA " + w.waba_id_meta));
+        var pn = inp("Phone Number ID (Meta)"), dn = inp("Nome de exibição"), dp = inp("Telefone");
+        card.appendChild(miniForm([pn, dn, dp], "Adicionar número", async function () {
+          if (!pn.value.trim()) return;
+          await api("/api/products/" + p.id + "/wabas/" + w.id + "/numbers", { phone_number_id_meta: pn.value.trim(), display_name: dn.value.trim() || null, display_phone: dp.value.trim() || null });
+          loadMultitenant(p, body);
+        }));
+      });
+      var wid = inp("ID da WABA (Meta)"), wnm = inp("Nome (opcional)");
+      card.appendChild(miniForm([wid, wnm], "Adicionar WABA", async function () {
+        if (!wid.value.trim()) return;
+        await api("/api/products/" + p.id + "/tenants/" + c.id + "/wabas", { waba_id_meta: wid.value.trim(), name: wnm.value.trim() || null });
+        loadMultitenant(p, body);
+      }));
+      var cn = numbers.filter(function (n) { return n.company_id === c.id; });
+      if (cn.length) {
+        card.appendChild(el("div", "section-title", "Números"));
+        cn.forEach(function (n) {
+          var row = el("div", "list-row");
+          row.appendChild(el("span", null, (n.display_name || n.phone_number_id_meta) + (n.display_phone ? " · " + n.display_phone : "")));
+          row.appendChild(el("span", "tag", n.quality_rating));
+          card.appendChild(row);
+        });
+      }
+      body.appendChild(card);
+    });
+  }
+
+  async function loadTemplates(p, body) {
+    body.textContent = "";
+    var tr = await apiGet("/api/products/" + p.id + "/tenants");
+    var wabas = (tr.data && tr.data.wabas) || [];
+    var fc = el("div", "formcard");
+    fc.appendChild(el("div", "section-title", "Novo template"));
+    if (!wabas.length) {
+      fc.appendChild(el("p", "empty", "Cadastre uma WABA na aba Multitenant primeiro."));
+    } else {
+      var ws = sel(wabas, function (w) { return w.id; }, function (w) { return w.company_name + " · " + w.waba_id_meta; });
+      var nm = inp("nome_do_template"), lg = inp("Idioma"); lg.value = "pt_BR";
+      var ct = selRaw(["utility", "marketing", "authentication"]);
+      var bt = ta("Corpo da mensagem (use {{1}} para variáveis)");
+      var m = el("div", "msg");
+      [ws, nm, lg, ct, bt].forEach(function (x) { fc.appendChild(x); });
+      var btn = el("button", "btn-sm", "Criar template");
+      btn.onclick = async function () {
+        var r = await api("/api/products/" + p.id + "/templates", { waba_id: ws.value, name: nm.value.trim(), language: lg.value.trim() || "pt_BR", category: ct.value, components: { body: { text: bt.value } } });
+        if (r.ok) { loadTemplates(p, body); } else { m.textContent = (r.data.detalhes && r.data.detalhes.join("; ")) || r.data.error || "erro"; m.className = "msg error"; }
+      };
+      fc.appendChild(btn); fc.appendChild(m);
+    }
+    body.appendChild(fc);
+    var lr = await apiGet("/api/products/" + p.id + "/templates");
+    var templates = (lr.data && lr.data.templates) || [];
+    body.appendChild(el("div", "section-title", "Templates (" + templates.length + ")"));
+    if (!templates.length) { body.appendChild(el("p", "empty", "Nenhum template.")); return; }
+    templates.forEach(function (t) {
+      var row = el("div", "list-row");
+      row.appendChild(el("span", null, t.name + " · " + t.language + " · " + t.category));
+      row.appendChild(el("span", "tag", t.status));
+      body.appendChild(row);
+    });
+  }
+
+  async function loadFlows(p, body) {
+    body.textContent = "";
+    var tr = await apiGet("/api/products/" + p.id + "/tenants");
+    var wabas = (tr.data && tr.data.wabas) || [];
+    var fc = el("div", "formcard");
+    fc.appendChild(el("div", "section-title", "Novo flow"));
+    var nm = inp("Nome do flow");
+    var wopts = [{ id: "", company_name: "", waba_id_meta: "" }].concat(wabas);
+    var ws = sel(wopts, function (w) { return w.id; }, function (w) { return w.id ? w.company_name + " · " + w.waba_id_meta : "(sem WABA)"; });
+    var fj = ta('flow_json (ex.: {"screens":[]})'); fj.value = "{}";
+    var m = el("div", "msg");
+    [nm, ws, fj].forEach(function (x) { fc.appendChild(x); });
+    var btn = el("button", "btn-sm", "Criar flow");
+    btn.onclick = async function () {
+      var parsed = {}; try { parsed = JSON.parse(fj.value || "{}"); } catch (e) { m.textContent = "flow_json inválido"; m.className = "msg error"; return; }
+      var r = await api("/api/products/" + p.id + "/flows", { name: nm.value.trim(), waba_id: ws.value || null, flow_json: parsed });
+      if (r.ok) { loadFlows(p, body); } else { m.textContent = (r.data && r.data.error) || "erro"; m.className = "msg error"; }
+    };
+    fc.appendChild(btn); fc.appendChild(m);
+    body.appendChild(fc);
+    var lr = await apiGet("/api/products/" + p.id + "/flows");
+    var flows = (lr.data && lr.data.flows) || [];
+    body.appendChild(el("div", "section-title", "Flows (" + flows.length + ")"));
+    if (!flows.length) { body.appendChild(el("p", "empty", "Nenhum flow.")); return; }
+    flows.forEach(function (f) {
+      var row = el("div", "list-row");
+      row.appendChild(el("span", null, f.name));
+      row.appendChild(el("span", "tag", f.status));
+      body.appendChild(row);
     });
   }
 
