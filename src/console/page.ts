@@ -306,6 +306,26 @@ export const CONSOLE_HTML = `<!doctype html>
   }
   function imgToken(src) { var m = (src || "").match(/^data:([^;]+)/); return "data:" + (m ? m[1] : "image") + ";base64,…(imagem mantida)…"; }
   function displayScreen(s) { return { id: s.id, title: s.title, variables: s.variables, components: (s.components || []).map(function (cp) { if (cp.t === "image" && cp.src) { var c = {}; for (var k in cp) c[k] = cp[k]; c.src = imgToken(cp.src); return c; } return cp; }) }; }
+  function exampleValue(cp) {
+    if (cp.t === "input") { var it = cp.inputType || "text"; if (it === "email") return "cliente@exemplo.com"; if (it === "number") return "42"; if (it === "phone") return "5511988887777"; if (it === "password" || it === "passcode") return "123456"; return "Texto de exemplo"; }
+    if (cp.t === "textarea") return "Resposta mais longa de exemplo.";
+    if (cp.t === "date") return "1990-01-01";
+    if (cp.t === "dropdown" || cp.t === "radio") return "0";
+    if (cp.t === "checkbox") return ["0"];
+    return "";
+  }
+  function genTestPayload(model) {
+    var resp = { flow_token: "flw_demo_123" };
+    model.screens.forEach(function (s) { (s.components || []).forEach(function (cp) { if (isInput(cp.t)) resp[cp.name || "campo"] = exampleValue(cp); }); });
+    return { object: "whatsapp_business_account", entry: [{ id: "WABA_ID_EXEMPLO", changes: [{ field: "messages", value: { messaging_product: "whatsapp", metadata: { display_phone_number: "5511999999999", phone_number_id: "PHONE_NUMBER_ID_EXEMPLO" }, contacts: [{ profile: { name: "Cliente Teste" }, wa_id: "5511988887777" }], messages: [{ from: "5511988887777", id: "wamid.EXEMPLO==", timestamp: "1700000000", type: "interactive", interactive: { type: "nfm_reply", nfm_reply: { name: "flow", body: "Sent", response_json: JSON.stringify(resp) } } }] } }] }] };
+  }
+  function showPayload(title, caption, text) {
+    var ov = el("div", "modal"); var card = el("div", "modal-card"); card.style.width = "min(92vw,680px)"; card.appendChild(el("h3", null, title));
+    if (caption) { var cap = el("div", "muted"); cap.style.cssText = "font-size:12px;margin:-8px 0 12px"; cap.textContent = caption; card.appendChild(cap); }
+    var pre = el("pre"); pre.style.cssText = "max-height:58vh;overflow:auto;background:#0B1220;color:#BFE3C6;padding:14px;border-radius:10px;font:12px ui-monospace,monospace;white-space:pre-wrap;word-break:break-word;margin:0;"; pre.textContent = text; card.appendChild(pre);
+    var bar = el("div", "inline-actions"); bar.style.cssText = "justify-content:flex-end;margin-top:12px"; var copy = el("button", "btn ghost", "Copiar"); copy.onclick = function () { try { navigator.clipboard.writeText(text); copy.textContent = "Copiado!"; } catch (e) {} }; var close = el("button", "btn", "Fechar"); close.onclick = function () { document.body.removeChild(ov); }; bar.appendChild(copy); bar.appendChild(close); card.appendChild(bar);
+    ov.appendChild(card); ov.onclick = function (e) { if (e.target === ov) document.body.removeChild(ov); }; document.body.appendChild(ov);
+  }
 
   async function loadFlows(p, c) {
     c.textContent = ""; var head = el("div", "row-head"); head.appendChild(el("h3", null, "Flows")); var nb = el("button", "btn sm", "+ Novo flow"); head.appendChild(nb); var wrap = el("div", "card"); wrap.appendChild(head);
@@ -318,7 +338,7 @@ export const CONSOLE_HTML = `<!doctype html>
     var st = { id: existing ? existing.id : null, name: existing ? existing.name : "", model: existing ? existing.model : normalizeBuilder(null), scr: 0, sel: -1, jsonMode: false, drag: null, dragScr: null, screenDrag: null, nodes: {}, textNodes: {}, ui: {}, jsonRanges: [], jsonLines: null, jsonTextarea: null };
     c.textContent = "";
     var top = el("div", "fb-top"); var nameIn = inp("Nome do flow"); nameIn.value = st.name; nameIn.oninput = function () { st.name = nameIn.value; }; top.appendChild(nameIn);
-    var acts = el("div", "inline-actions"); var jsonBtn = el("button", "btn ghost", "Ver JSON"); var back = el("button", "btn ghost", "Voltar"); back.onclick = function () { loadFlows(p, c); }; var save = el("button", "btn", "Salvar flow"); acts.appendChild(jsonBtn); acts.appendChild(back); acts.appendChild(save); top.appendChild(acts); c.appendChild(top);
+    var acts = el("div", "inline-actions"); var jsonBtn = el("button", "btn ghost", "Ver JSON"); var payloadBtn = el("button", "btn ghost", "Payload de teste"); payloadBtn.onclick = function () { showPayload("Payload de teste (webhook do WhatsApp)", "O que o seu webhook recebe quando o usuário finaliza este flow (interactive.nfm_reply). Os campos vêm dos inputs; o flow_token correlaciona a sessão de origem.", JSON.stringify(genTestPayload(st.model), null, 2)); }; var back = el("button", "btn ghost", "Voltar"); back.onclick = function () { loadFlows(p, c); }; var save = el("button", "btn", "Salvar flow"); acts.appendChild(jsonBtn); acts.appendChild(payloadBtn); acts.appendChild(back); acts.appendChild(save); top.appendChild(acts); c.appendChild(top);
     var smsg = el("div", "msg"); c.appendChild(smsg);
     var fb = el("div", "fb"); var left = el("div", "fb-pane"), center = el("div"), right = el("div", "fb-pane prop"); fb.appendChild(left); fb.appendChild(center); fb.appendChild(right); c.appendChild(fb);
     function screen() { return st.model.screens[st.scr]; }
