@@ -82,9 +82,9 @@ export const CONSOLE_HTML = `<!doctype html>
   .var { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; } .var:last-child { border-bottom:0; }
   .chip { background:var(--primary-weak); color:var(--primary); border-radius:6px; padding:3px 7px; font-size:11px; font-family:ui-monospace,monospace; cursor:pointer; border:0; }
   .stage { display:flex; justify-content:center; }
-  .sheet { width:360px; background:#fff; border-radius:22px 22px 12px 12px; overflow:hidden; border:1px solid var(--border); box-shadow:0 14px 44px rgba(0,0,0,.14); display:flex; flex-direction:column; min-height:580px; }
-  .sheet-head { background:#fff; border-bottom:1px solid #eee; padding:14px 16px; display:flex; align-items:center; gap:12px; } .sheet-head .x { color:#555; font-size:17px; } .sheet-head .st { font-weight:600; font-size:15px; color:#111; outline:none; }
-  .sheet-body { padding:16px; display:flex; flex-direction:column; gap:12px; flex:1; } .sheet-foot { padding:12px 16px 18px; }
+  .sheet { width:360px; height:640px; background:#fff; border-radius:22px 22px 12px 12px; overflow:hidden; border:1px solid var(--border); box-shadow:0 14px 44px rgba(0,0,0,.14); display:flex; flex-direction:column; }
+  .sheet-head { background:#fff; border-bottom:1px solid #eee; padding:14px 16px; display:flex; align-items:center; gap:12px; flex:0 0 auto; } .sheet-head .x { color:#555; font-size:17px; } .sheet-head .st { font-weight:600; font-size:15px; color:#111; outline:none; }
+  .sheet-body { padding:16px; display:flex; flex-direction:column; gap:12px; flex:1 1 auto; overflow-y:auto; } .sheet-foot { padding:12px 16px 18px; flex:0 0 auto; border-top:1px solid #f0f0f0; }
   .submit { background:#0a7cff; color:#fff; text-align:center; padding:13px; border-radius:24px; font-weight:600; font-size:15px; outline:none; }
   .el { position:relative; border:1.5px solid transparent; border-radius:8px; padding:5px; cursor:pointer; }
   .el:hover { border-color:#dbe5ff; } .el.sel { border-color:var(--primary); }
@@ -104,7 +104,7 @@ export const CONSOLE_HTML = `<!doctype html>
   .jsonwrap { position:relative; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--panel); }
   .jsonwrap.bad { border-color:var(--danger); }
   .jl { position:absolute; inset:0; margin:0; padding:10px 12px; font:12px/1.5 ui-monospace,monospace; pointer-events:none; overflow:hidden; white-space:pre; }
-  .jl .ln { display:block; height:18px; border-radius:3px; color:transparent; } .jl .ln.hl { background:var(--primary-weak); } .jl .ln.err { background:#FEE2E2; }
+  .jl .ln { display:block; height:18px; border-radius:3px; color:transparent; } .jl .ln.hl { background:#D7DEFF; box-shadow:inset 3px 0 0 var(--primary); } .jl .ln.err { background:#FEE2E2; box-shadow:inset 3px 0 0 var(--danger); }
   .jt { position:relative; display:block; width:100%; height:440px; resize:vertical; border:0; outline:none; padding:10px 12px; font:12px/1.5 ui-monospace,monospace; background:transparent; color:var(--text); white-space:pre; overflow:auto; }
   .jerr { color:var(--danger); font-size:12px; margin-top:8px; min-height:16px; }
   .stages { display:flex; gap:20px; overflow-x:auto; padding:4px 2px 16px; align-items:flex-start; }
@@ -289,6 +289,8 @@ export const CONSOLE_HTML = `<!doctype html>
     (s.components || []).forEach(function (cp, i) { var block = JSON.stringify(cp, null, 2).split("\\n").map(function (l) { return "    " + l; }); var start = lines.length; block.forEach(function (bl) { lines.push(bl); }); if (i < s.components.length - 1) lines[lines.length - 1] += ","; ranges.push({ idx: i, start: start, end: lines.length - 1 }); });
     lines.push("  ]"); lines.push("}"); return { text: lines.join("\\n"), ranges: ranges };
   }
+  function imgToken(src) { var m = (src || "").match(/^data:([^;]+)/); return "data:" + (m ? m[1] : "image") + ";base64,…(imagem mantida)…"; }
+  function displayScreen(s) { return { id: s.id, title: s.title, variables: s.variables, components: (s.components || []).map(function (cp) { if (cp.t === "image" && cp.src) { var c = {}; for (var k in cp) c[k] = cp[k]; c.src = imgToken(cp.src); return c; } return cp; }) }; }
 
   async function loadFlows(p, c) {
     c.textContent = ""; var head = el("div", "row-head"); head.appendChild(el("h3", null, "Flows")); var nb = el("button", "btn sm", "+ Novo flow"); head.appendChild(nb); var wrap = el("div", "card"); wrap.appendChild(head);
@@ -401,10 +403,10 @@ export const CONSOLE_HTML = `<!doctype html>
     function lineOfError(text, e) { var m = /position (\\d+)/.exec(e.message || ""); if (!m) return -1; return text.slice(0, Number(m[1])).split("\\n").length - 1; }
     function compAtLine(line) { var r = (st.jsonRanges || []).filter(function (x) { return line >= x.start && line <= x.end; })[0]; return r ? r.idx : -1; }
     function highlightJsonLines(idx) { if (!st.jsonLines) return; var lns = st.jsonLines.querySelectorAll(".ln"); for (var i = 0; i < lns.length; i++) lns[i].classList.remove("hl"); var r = (st.jsonRanges || []).filter(function (x) { return x.idx === idx; })[0]; if (!r) return; for (var j = r.start; j <= r.end && j < lns.length; j++) lns[j].classList.add("hl"); }
-    function rebuildJsonRanges() { st.jsonRanges = screenJsonWithRanges(screen()).ranges; }
+    function rebuildJsonRanges() { st.jsonRanges = screenJsonWithRanges(displayScreen(screen())).ranges; }
     function renderJson() {
       right.textContent = ""; right.appendChild(el("h4", null, "JSON da tela (editável)"));
-      var jr = screenJsonWithRanges(screen()); st.jsonRanges = jr.ranges;
+      var jr = screenJsonWithRanges(displayScreen(screen())); st.jsonRanges = jr.ranges;
       var wrap = el("div", "jsonwrap"); var jl = el("pre", "jl"); st.jsonLines = jl;
       function buildLines(text, errLine) { jl.textContent = ""; text.split("\\n").forEach(function (line, i) { var d = el("div", "ln"); d.textContent = line || " "; if (errLine === i) d.classList.add("err"); jl.appendChild(d); }); }
       buildLines(jr.text, -1);
@@ -414,7 +416,12 @@ export const CONSOLE_HTML = `<!doctype html>
       tx.oninput = function () {
         var parsed; try { parsed = JSON.parse(tx.value); } catch (e) { wrap.classList.add("bad"); var ln = lineOfError(tx.value, e); buildLines(tx.value, ln); errEl.textContent = "JSON inválido" + (ln >= 0 ? " (linha " + (ln + 1) + ")" : "") + ": " + e.message; return; }
         wrap.classList.remove("bad"); errEl.textContent = "";
-        if (parsed && parsed.components) { st.model.screens[st.scr] = { id: parsed.id || screen().id, title: parsed.title || "", variables: parsed.variables || [], components: parsed.components }; renderStage(); renderLeft(); }
+        if (parsed && parsed.components) {
+          var origImgs = (screen().components || []).filter(function (x) { return x.t === "image"; }).map(function (x) { return x.src; });
+          var ki = 0;
+          parsed.components.forEach(function (cp) { if (cp && cp.t === "image") { if (typeof cp.src === "string" && cp.src.indexOf("…") >= 0) cp.src = origImgs[ki] || ""; ki++; } });
+          st.model.screens[st.scr] = { id: parsed.id || screen().id, title: parsed.title || "", variables: parsed.variables || [], components: parsed.components }; renderStage(); renderLeft();
+        }
         rebuildJsonRanges(); buildLines(tx.value, -1); if (st.sel >= 0) highlightJsonLines(st.sel);
       };
       tx.onkeyup = tx.onclick = function () { var line = tx.value.slice(0, tx.selectionStart).split("\\n").length - 1; var idx = compAtLine(line); if (idx >= 0 && idx !== st.sel) { st.sel = idx; markSel(); } };
