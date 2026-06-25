@@ -76,12 +76,13 @@ export const CONSOLE_HTML = `<!doctype html>
   .modal-card { width:min(92vw,440px); background:var(--panel); border-radius:16px; padding:24px; } .modal-card h3 { margin:0 0 16px; font-size:16px; }
 
   .fb-top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; } .fb-top .in { max-width:320px; }
-  .fb { display:grid; grid-template-columns:190px minmax(0,1fr) 300px; gap:14px; align-items:start; }
+  .fb { display:grid; grid-template-columns:225px minmax(0,1fr) 300px; gap:14px; align-items:start; }
   @media (max-width:1100px){ .fb { grid-template-columns:1fr; } }
   .fb-pane { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
   .fb-pane h4 { margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
-  .pal { display:flex; flex-direction:column; gap:6px; }
-  .pal button { text-align:left; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; font-size:13px; }
+  .pal { display:flex; flex-direction:column; gap:7px; }
+  .pal button { display:flex; align-items:center; gap:10px; text-align:left; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px 12px; border-radius:9px; font-size:13px; font-weight:500; }
+  .pal .ic { width:20px; text-align:center; font-size:15px; flex:0 0 auto; }
   .pal button:hover { background:var(--primary-weak); border-color:var(--primary-weak); color:var(--primary); }
   .scrs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
   .scrs .s { padding:6px 10px; border-radius:8px; background:var(--bg); border:1px solid var(--border); font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; }
@@ -93,6 +94,12 @@ export const CONSOLE_HTML = `<!doctype html>
   .sheet-head { background:#fff; border-bottom:1px solid #eee; padding:14px 16px; display:flex; align-items:center; gap:12px; flex:0 0 auto; } .sheet-head .x { color:#555; font-size:17px; } .sheet-head .st { font-weight:600; font-size:15px; color:#111; outline:none; }
   .sheet-body { padding:16px; display:flex; flex-direction:column; gap:12px; flex:1 1 auto; overflow-y:auto; } .sheet-foot { padding:12px 16px 18px; flex:0 0 auto; border-top:1px solid #f0f0f0; }
   .submit { background:#0a7cff; color:#fff; text-align:center; padding:13px; border-radius:24px; font-weight:600; font-size:15px; outline:none; }
+  .submit.nav { background:#fff; color:#0a7cff; border:1px solid #0a7cff; }
+  .foot-cap { text-align:center; font-size:11px; color:var(--muted); margin-top:6px; }
+  .conn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; align-self:center; min-width:84px; }
+  .conn .arrow { width:34px; height:34px; border-radius:50%; background:var(--primary-weak); color:var(--primary); display:grid; place-items:center; font-size:18px; font-weight:700; }
+  .conn select { font-size:11px; padding:4px 6px; border:1px solid var(--border); border-radius:7px; background:var(--panel); max-width:120px; }
+  .conn.term .arrow { background:#ECFDF3; color:#067647; }
   .el { position:relative; border:1.5px solid transparent; border-radius:8px; padding:5px; cursor:pointer; }
   .el:hover { border-color:#dbe5ff; } .el.sel { border-color:var(--primary); }
   .el.drop-before { box-shadow:0 -3px 0 var(--primary); } .el.drop-after { box-shadow:0 3px 0 var(--primary); } .el.dragging { opacity:.4; }
@@ -236,7 +243,22 @@ export const CONSOLE_HTML = `<!doctype html>
 
   /* ===================== FLOWS ===================== */
   var LIM = { heading: 80, subheading: 80, body: 4096, caption: 4096, footer: 35, link: 35, inputLabel: 20, taLabel: 20, helper: 80, selLabel: 30, dateLabel: 40, title: 30 };
-  function normalizeBuilder(j) { if (j && j.builder && j.builder.screens) return j.builder; return { screens: [{ id: "TELA_1", title: "Tela 1", variables: [], components: [] }] }; }
+  function normalizeBuilder(j) {
+    var m = (j && j.builder && j.builder.screens) ? j.builder : { screens: [{ id: "TELA_1", title: "Tela 1", variables: [], components: [] }] };
+    m.screens.forEach(function (s) {
+      if (s.next === undefined) s.next = "__auto__";
+      var fc = (s.components || []).filter(function (c) { return c.t === "footer"; });
+      if (fc.length) { if (!s.footerLabel) s.footerLabel = fc[0].label; s.components = (s.components || []).filter(function (c) { return c.t !== "footer"; }); }
+    });
+    return m;
+  }
+  // Navegacao entre telas: "__auto__" segue a sequencia; "__end__" finaliza (envia);
+  // um id de tela navega diretamente para ela (fluxo direcional).
+  function effNext(model, i) { var s = model.screens[i]; var nx = s.next || "__auto__"; if (nx === "__end__") return null; if (nx === "__auto__") return i < model.screens.length - 1 ? model.screens[i + 1].id : null; var ok = model.screens.some(function (x) { return x.id === nx; }); return ok ? nx : (i < model.screens.length - 1 ? model.screens[i + 1].id : null); }
+  function isTerminal(model, i) { return effNext(model, i) === null; }
+  function footerLabelOf(model, i) { return model.screens[i].footerLabel || (isTerminal(model, i) ? "Enviar" : "Continuar"); }
+  function screenTitleById(model, id) { for (var i = 0; i < model.screens.length; i++) if (model.screens[i].id === id) return model.screens[i].title || ("Tela " + (i + 1)); return id || "—"; }
+  function navOptions(model, i) { var opts = [{ v: "__auto__", l: "→ Sequência (próxima)" }]; model.screens.forEach(function (s, k) { if (k !== i) opts.push({ v: s.id, l: "→ " + (s.title || ("Tela " + (k + 1))) }); }); opts.push({ v: "__end__", l: "✓ Finalizar (enviar)" }); return opts; }
   function newEl(t) {
     if (t === "heading") return { t: t, text: "Título" }; if (t === "subheading") return { t: t, text: "Subtítulo" };
     if (t === "body") return { t: t, text: "Texto do parágrafo" }; if (t === "caption") return { t: t, text: "Legenda" };
@@ -264,11 +286,12 @@ export const CONSOLE_HTML = `<!doctype html>
   }
   function exportFlow(model) {
     var screens = model.screens.map(function (s, idx) {
-      var last = idx === model.screens.length - 1; var children = [], formCh = [], hasInput = false, footer = null;
-      (s.components || []).forEach(function (cp) { if (cp.t === "footer") { footer = cp; return; } var m = mapComp(cp); if (!m) return; if (isInput(cp.t)) { hasInput = true; formCh.push(m); } else children.push(m); });
-      var footerComp = { type: "Footer", label: (footer && footer.label) || "Continuar", "on-click-action": last ? { name: "complete", payload: {} } : { name: "navigate", next: { type: "screen", name: model.screens[idx + 1].id }, payload: {} } };
-      if (hasInput) { formCh.push(footerComp); children.push({ type: "Form", name: "form", children: formCh }); } else if (footer) children.push(footerComp);
-      var scr = { id: s.id, title: s.title, terminal: last, layout: { type: "SingleColumnLayout", children: children } };
+      var children = [], formCh = [], hasInput = false;
+      (s.components || []).forEach(function (cp) { var m = mapComp(cp); if (!m) return; if (isInput(cp.t)) { hasInput = true; formCh.push(m); } else children.push(m); });
+      var term = isTerminal(model, idx); var tgt = effNext(model, idx);
+      var footerComp = { type: "Footer", label: footerLabelOf(model, idx), "on-click-action": term ? { name: "complete", payload: {} } : { name: "navigate", next: { type: "screen", name: tgt }, payload: {} } };
+      if (hasInput) { formCh.push(footerComp); children.push({ type: "Form", name: "form", children: formCh }); } else children.push(footerComp);
+      var scr = { id: s.id, title: s.title, terminal: term, layout: { type: "SingleColumnLayout", children: children } };
       var data = {}; (s.variables || []).forEach(function (v) { data[v.name] = { type: v.type || "string", __example__: v.example || "" }; }); if (Object.keys(data).length) scr.data = data;
       return scr;
     });
@@ -278,7 +301,7 @@ export const CONSOLE_HTML = `<!doctype html>
     var out = [];
     model.screens.forEach(function (s, si) {
       var prefix = "Tela " + (si + 1) + ": "; if ((s.title || "").length > LIM.title) out.push({ k: "err", m: prefix + "título com " + s.title.length + "/" + LIM.title });
-      var imgs = 0, footers = 0, links = 0, names = {};
+      var imgs = 0, links = 0, names = {};
       (s.components || []).forEach(function (cp) {
         var tf = textField(cp), val = (cp[tf] || "");
         if (val.length > limitOf(cp)) out.push({ k: "err", m: prefix + 'texto "' + val.slice(0, 14) + '…" com ' + val.length + "/" + limitOf(cp) + " caracteres" });
@@ -286,26 +309,31 @@ export const CONSOLE_HTML = `<!doctype html>
         if (cp.helper && cp.helper.length > LIM.helper) out.push({ k: "err", m: prefix + "ajuda com " + cp.helper.length + "/" + LIM.helper });
         if (isInput(cp.t)) { if (names[cp.name]) out.push({ k: "err", m: prefix + 'name "' + cp.name + '" repetido' }); names[cp.name] = 1; }
         if (cp.t === "image") { imgs++; if (!cp.src) out.push({ k: "warn", m: prefix + "imagem sem arquivo" }); }
-        if (cp.t === "footer") footers++;
         if (cp.t === "link") { links++; if (!(cp.text || "").trim()) out.push({ k: "err", m: prefix + "link sem texto (obrigatório)" }); if ((cp.action || "navigate") === "navigate" && !cp.target) out.push({ k: "warn", m: prefix + "link sem tela de destino" }); if (cp.action === "open_url" && !(cp.url || "").trim()) out.push({ k: "warn", m: prefix + "link sem URL" }); }
         if ((cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") && (cp.options || []).length < 1) out.push({ k: "err", m: prefix + "lista sem opções" });
       });
       if (imgs > 3) out.push({ k: "err", m: prefix + "máximo de 3 imagens por tela (tem " + imgs + ")" });
-      if (footers > 1) out.push({ k: "err", m: prefix + "apenas um botão de rodapé por tela (regra do WhatsApp)" });
       if (links > 2) out.push({ k: "err", m: prefix + "máximo de 2 links por tela (regra do WhatsApp; tem " + links + ")" });
-      if (si === model.screens.length - 1 && footers === 0) out.push({ k: "warn", m: prefix + "tela final precisa de um botão para enviar" });
+      var nx = s.next || "__auto__"; if (nx !== "__auto__" && nx !== "__end__" && !model.screens.some(function (x) { return x.id === nx; })) out.push({ k: "err", m: prefix + "navega para uma tela inexistente" });
     });
+    var terminals = model.screens.filter(function (s, i) { return isTerminal(model, i); });
+    if (!terminals.length) out.push({ k: "err", m: "Nenhuma tela finaliza o fluxo: marque uma tela como 'Finalizar (enviar)'." });
+    var reach = {}; var stack = [0]; reach[0] = true;
+    while (stack.length) { var ci = stack.pop(); var tt = effNext(model, ci); if (tt != null) { var idx2 = -1; for (var q = 0; q < model.screens.length; q++) if (model.screens[q].id === tt) { idx2 = q; break; } if (idx2 >= 0 && !reach[idx2]) { reach[idx2] = true; stack.push(idx2); } } }
+    model.screens.forEach(function (s, i) { if (!reach[i]) out.push({ k: "warn", m: "Tela " + (i + 1) + " não é alcançada por nenhuma conexão (sequencial ou direcional)." }); });
     return out;
   }
   function screenJsonWithRanges(s) {
     var lines = ["{"]; lines.push('  "id": ' + JSON.stringify(s.id) + ","); lines.push('  "title": ' + JSON.stringify(s.title || "") + ",");
+    lines.push('  "next": ' + JSON.stringify(s.next || "__auto__") + ",");
+    if (s.footerLabel) lines.push('  "footerLabel": ' + JSON.stringify(s.footerLabel) + ",");
     if (s.variables && s.variables.length) lines.push('  "variables": ' + JSON.stringify(s.variables) + ",");
     lines.push('  "components": ['); var ranges = [];
     (s.components || []).forEach(function (cp, i) { var block = JSON.stringify(cp, null, 2).split("\\n").map(function (l) { return "    " + l; }); var start = lines.length; block.forEach(function (bl) { lines.push(bl); }); if (i < s.components.length - 1) lines[lines.length - 1] += ","; ranges.push({ idx: i, start: start, end: lines.length - 1 }); });
     lines.push("  ]"); lines.push("}"); return { text: lines.join("\\n"), ranges: ranges };
   }
   function imgToken(src) { var m = (src || "").match(/^data:([^;]+)/); return "data:" + (m ? m[1] : "image") + ";base64,…(imagem mantida)…"; }
-  function displayScreen(s) { return { id: s.id, title: s.title, variables: s.variables, components: (s.components || []).map(function (cp) { if (cp.t === "image" && cp.src) { var c = {}; for (var k in cp) c[k] = cp[k]; c.src = imgToken(cp.src); return c; } return cp; }) }; }
+  function displayScreen(s) { return { id: s.id, title: s.title, next: s.next, footerLabel: s.footerLabel, variables: s.variables, components: (s.components || []).map(function (cp) { if (cp.t === "image" && cp.src) { var c = {}; for (var k in cp) c[k] = cp[k]; c.src = imgToken(cp.src); return c; } return cp; }) }; }
   function exampleValue(cp) {
     if (cp.t === "input") { var it = cp.inputType || "text"; if (it === "email") return "cliente@exemplo.com"; if (it === "number") return "42"; if (it === "phone") return "5511988887777"; if (it === "password" || it === "passcode") return "123456"; return "Texto de exemplo"; }
     if (cp.t === "textarea") return "Resposta mais longa de exemplo.";
@@ -359,10 +387,10 @@ export const CONSOLE_HTML = `<!doctype html>
     function renderLeft() {
       left.textContent = "";
       var scrs = el("div", "scrs"); st.model.screens.forEach(function (s, i) { var b = el("button", "s" + (i === st.scr ? " active" : ""), s.title || ("Tela " + (i + 1))); b.onclick = function () { st.scr = i; st.sel = -1; renderAll(); }; scrs.appendChild(b); });
-      var addS = el("button", "s", "+ Tela"); addS.onclick = function () { hist(); var n = st.model.screens.length + 1; st.model.screens.push({ id: "TELA_" + n, title: "Tela " + n, variables: [], components: [] }); st.scr = st.model.screens.length - 1; st.sel = -1; renderAll(); }; scrs.appendChild(addS); left.appendChild(scrs);
+      var addS = el("button", "s", "+ Tela"); addS.onclick = function () { hist(); var n = st.model.screens.length + 1; st.model.screens.push({ id: "TELA_" + n, title: "Tela " + n, variables: [], components: [], next: "__auto__" }); st.scr = st.model.screens.length - 1; st.sel = -1; renderAll(); }; scrs.appendChild(addS); left.appendChild(scrs);
       if (st.model.screens.length > 1) { var del = el("button", "btn danger", "remover tela"); del.onclick = function () { hist(); st.model.screens.splice(st.scr, 1); st.scr = 0; st.sel = -1; renderAll(); }; left.appendChild(del); }
       left.appendChild(el("h4", null, "Elementos")); var pal = el("div", "pal");
-      [["heading", "Cabeçalho"], ["subheading", "Subtítulo"], ["body", "Parágrafo"], ["caption", "Legenda"], ["image", "Imagem"], ["input", "Campo de texto"], ["textarea", "Área de texto"], ["dropdown", "Lista suspensa"], ["radio", "Escolha única"], ["checkbox", "Múltipla escolha"], ["date", "Data"], ["footer", "Botão (rodapé)"], ["link", "Botão / link (Sim, Não…)"]].forEach(function (t) { var b = el("button", null, t[1]); b.onclick = function () { hist(); screen().components.push(newEl(t[0])); st.sel = screen().components.length - 1; renderAll(); }; pal.appendChild(b); }); left.appendChild(pal);
+      [["heading", "Cabeçalho", "🔠"], ["subheading", "Subtítulo", "🔡"], ["body", "Parágrafo", "📄"], ["caption", "Legenda", "🏷️"], ["image", "Imagem", "🖼️"], ["input", "Campo de texto", "✏️"], ["textarea", "Área de texto", "📝"], ["dropdown", "Lista suspensa", "🔽"], ["radio", "Escolha única", "🔘"], ["checkbox", "Múltipla escolha", "☑️"], ["date", "Data", "📅"], ["link", "Botão / link", "🔗"]].forEach(function (t) { var b = el("button", null, null); b.appendChild(el("span", "ic", t[2])); b.appendChild(el("span", null, t[1])); b.onclick = function () { hist(); screen().components.push(newEl(t[0])); st.sel = screen().components.length - 1; renderAll(); }; pal.appendChild(b); }); left.appendChild(pal);
       left.appendChild(el("h4", null, "Variáveis"));
       (screen().variables || []).forEach(function (v, i) { var row = el("div", "var"); var chip = el("button", "chip", DREF + v.name + "}"); chip.title = "Inserir no texto selecionado"; chip.onclick = function () { document.execCommand("insertText", false, DREF + v.name + "}"); }; row.appendChild(chip); var x = el("button", "btn danger", "✕"); x.onclick = function () { hist(); screen().variables.splice(i, 1); renderAll(); }; row.appendChild(x); left.appendChild(row); });
       var vn = inp("nome_da_variavel"); var vadd = el("button", "btn sm ghost", "+ variável"); vadd.style.marginTop = "8px"; vadd.onclick = function () { var n = vn.value.trim().replace(/[^a-zA-Z0-9_]/g, "_"); if (!n) return; hist(); if (!screen().variables) screen().variables = []; screen().variables.push({ name: n, type: "string", example: "" }); renderAll(); }; left.appendChild(vn); left.appendChild(vadd);
@@ -398,12 +426,14 @@ export const CONSOLE_HTML = `<!doctype html>
         else if (cp.t === "body") wrap.appendChild(editable("e-b", sIdx, idx, function () { return cp.text; }, function (v) { cp.text = v; }));
         else if (cp.t === "caption") wrap.appendChild(editable("e-c", sIdx, idx, function () { return cp.text; }, function (v) { cp.text = v; }));
         else if (cp.t === "image") { if (cp.src) { var im = el("img", "e-img"); im.src = cp.src; wrap.appendChild(im); } else wrap.appendChild(el("div", "ph-img", "Imagem (envie no painel →)")); }
-        else if (cp.t === "footer") { wrap.appendChild(editable("submit", sIdx, idx, function () { return cp.label; }, function (v) { cp.label = v; })); foot.appendChild(wrap); return; }
+        else if (cp.t === "footer") { return; }
         else if (cp.t === "link") wrap.appendChild(editable("e-link", sIdx, idx, function () { return cp.text; }, function (v) { cp.text = v; }));
         else if (isInput(cp.t)) { wrap.appendChild(editable("e-lab", sIdx, idx, function () { return cp.label; }, function (v) { cp.label = v; })); if (cp.t === "input" || cp.t === "textarea") wrap.appendChild(el("div", "e-box", cp.t === "textarea" ? "Texto longo..." : "Digite...")); else if (cp.t === "date") wrap.appendChild(el("div", "e-box", "DD/MM/AAAA  📅")); else { (cp.options || []).forEach(function (op) { var o = el("div", "e-opt" + (cp.t === "checkbox" ? " sq" : "")); o.appendChild(el("span", "mk")); o.appendChild(el("span", null, op)); wrap.appendChild(o); }); } if (cp.helper) wrap.appendChild(el("div", "e-help", cp.helper)); }
         else wrap.appendChild(el("div", "e-b", "(" + cp.t + ")"));
         if (cp.t !== "footer") body.appendChild(wrap);
       });
+      var term = isTerminal(st.model, sIdx); var fbtn = el("div", "submit" + (term ? "" : " nav")); fbtn.contentEditable = "true"; fbtn.spellcheck = false; fbtn.textContent = footerLabelOf(st.model, sIdx); fbtn.onfocus = function () { hist(); st.scr = sIdx; st.sel = -1; markActiveScreen(); if (!st.jsonMode) renderRight(); }; fbtn.oninput = function () { s.footerLabel = fbtn.textContent; renderValidationOnly(); }; foot.appendChild(fbtn);
+      foot.appendChild(el("div", "foot-cap", term ? "✓ Finaliza e envia as respostas" : "→ vai para " + screenTitleById(st.model, effNext(st.model, sIdx))));
       sheet.appendChild(body); sheet.appendChild(foot); return sheet;
     }
 
@@ -420,6 +450,8 @@ export const CONSOLE_HTML = `<!doctype html>
         col.ondrop = function (e) { if (st.screenDrag == null) return; e.preventDefault(); var f = st.screenDrag, t = st.screenDropTo; st.screenDrag = null; clearScreenDrops(); reorderScreen(f, t); };
         col.ondragend = function () { st.screenDrag = null; clearScreenDrops(); };
         col.appendChild(bar); col.appendChild(buildSheet(s, sIdx)); row.appendChild(col);
+        var term0 = isTerminal(st.model, sIdx); var conn = el("div", "conn" + (term0 ? " term" : "")); conn.appendChild(el("div", "arrow", term0 ? "✓" : "→"));
+        var csel = selOf(navOptions(st.model, sIdx), function (v) { return v.v; }, function (v) { return v.l; }); csel.value = s.next || "__auto__"; csel.onchange = function () { hist(); s.next = csel.value; renderAll(); }; conn.appendChild(csel); row.appendChild(conn);
       });
       center.appendChild(row);
     }
@@ -437,6 +469,8 @@ export const CONSOLE_HTML = `<!doctype html>
         var scc = el("div", "cnt", (screen().title || "").length + " / " + LIM.title + " caracteres"); if ((screen().title || "").length > LIM.title) scc.classList.add("over"); sf.appendChild(scc);
         sti.onfocus = hist; sti.oninput = function () { screen().title = sti.value; scc.textContent = (sti.value || "").length + " / " + LIM.title + " caracteres"; scc.classList.toggle("over", (sti.value || "").length > LIM.title); renderStage(); renderValidationOnly(); };
         right.appendChild(sf);
+        var nf = el("div", "field"); nf.appendChild(el("label", null, "Ao concluir esta tela")); var nsel = selOf(navOptions(st.model, st.scr), function (v) { return v.v; }, function (v) { return v.l; }); nsel.value = screen().next || "__auto__"; nsel.onchange = function () { hist(); screen().next = nsel.value; renderAll(); }; nf.appendChild(nsel); right.appendChild(nf);
+        var lf2 = el("div", "field"); lf2.appendChild(el("label", null, "Texto do botão")); var lbi = inp(isTerminal(st.model, st.scr) ? "Enviar" : "Continuar", screen().footerLabel || ""); lbi.onfocus = hist; lbi.oninput = function () { screen().footerLabel = lbi.value; renderStage(); }; lf2.appendChild(lbi); right.appendChild(lf2);
         right.appendChild(el("div", "muted", "Clique num elemento para editá-lo, ou numa área vazia da tela para selecioná-la. Delete remove o elemento selecionado; Ctrl+Z desfaz."));
       }
       else {
@@ -488,7 +522,7 @@ export const CONSOLE_HTML = `<!doctype html>
           var origImgs = (screen().components || []).filter(function (x) { return x.t === "image"; }).map(function (x) { return x.src; });
           var ki = 0;
           parsed.components.forEach(function (cp) { if (cp && cp.t === "image") { if (typeof cp.src === "string" && cp.src.indexOf("…") >= 0) cp.src = origImgs[ki] || ""; ki++; } });
-          st.model.screens[st.scr] = { id: parsed.id || screen().id, title: parsed.title || "", variables: parsed.variables || [], components: parsed.components }; renderStage(); renderLeft();
+          st.model.screens[st.scr] = { id: parsed.id || screen().id, title: parsed.title || "", next: parsed.next || "__auto__", footerLabel: parsed.footerLabel, variables: parsed.variables || [], components: parsed.components }; renderStage(); renderLeft();
         }
         rebuildJsonRanges(); buildLines(tx.value, -1); if (st.sel >= 0) highlightJsonLines(st.sel);
       };
