@@ -6,6 +6,8 @@ import * as tenants from "../../tenants/tenants.repo.ts";
 import * as templatesRepo from "../../templates/templates.repo.ts";
 import * as flowsRepo from "../../flows/flows.repo.ts";
 import { validateTemplateInput } from "../../templates/template-validate.ts";
+import { summaryByProduct, chargebackByProduct } from "../../metrics/metrics.repo.ts";
+import { normalizeWithFallback } from "../../normalizer/fallback.ts";
 
 export async function manageRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("preHandler", requireApiKey);
@@ -103,4 +105,20 @@ export async function manageRoutes(app: FastifyInstance): Promise<void> {
   app.get("/v1/flows", async (req) => ({
     flows: await flowsRepo.listFlows(req.apiKey!.productId),
   }));
+
+  app.get("/v1/metrics", async (req) => {
+    const to = new Date().toISOString();
+    const from = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const [summary, chargeback] = await Promise.all([
+      summaryByProduct(req.apiKey!.productId, from, to),
+      chargebackByProduct(req.apiKey!.productId),
+    ]);
+    return { summary, chargeback, periodo: { from, to } };
+  });
+
+  // Normaliza um codigo de erro da Cloud API (deterministico; fallback LLM se habilitado).
+  app.get("/v1/normalize/:code", async (req) => {
+    const { code } = req.params as { code: string };
+    return normalizeWithFallback(code);
+  });
 }

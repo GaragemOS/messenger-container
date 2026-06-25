@@ -5,6 +5,7 @@ import { requireEmbedToken } from "../middleware/embed-token.ts";
 import * as tenants from "../../tenants/tenants.repo.ts";
 import { listTemplates } from "../../templates/templates.repo.ts";
 import { listFlows } from "../../flows/flows.repo.ts";
+import { summaryByProduct, chargebackByProduct } from "../../metrics/metrics.repo.ts";
 
 export async function embedDataRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("preHandler", requireEmbedToken);
@@ -26,9 +27,13 @@ export async function embedDataRoutes(app: FastifyInstance): Promise<void> {
     return { companies, numbers };
   });
 
-  app.get("/v1/embed/metrics", async (req) => ({
-    product: req.embed!.product,
-    note: "metricas detalhadas chegam na fase 6",
-    series: [],
-  }));
+  app.get("/v1/embed/metrics", async (req) => {
+    const to = new Date().toISOString();
+    const from = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const [summary, chargeback] = await Promise.all([
+      summaryByProduct(req.embed!.product, from, to),
+      chargebackByProduct(req.embed!.product),
+    ]);
+    return { summary, chargeback, periodo: { from, to } };
+  });
 }

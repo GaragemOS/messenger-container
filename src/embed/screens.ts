@@ -125,7 +125,21 @@ const SHELL = `<!doctype html>
       }).catch(function () { postHeight(); });
     } else {
       api("/v1/embed/metrics").then(function (d) {
-        var c = card("Metricas"); c.appendChild(el("p", "muted", d.note || "")); content.appendChild(c); postHeight();
+        var s = d.summary || {};
+        var c = card("Mensagens (30 dias)");
+        c.appendChild(row("Enviadas", String(s.sent || 0)));
+        c.appendChild(row("Entregues", String(s.delivered || 0)));
+        c.appendChild(row("Lidas", String(s.read || 0)));
+        c.appendChild(row("Falhas", String(s.failed || 0)));
+        content.appendChild(c);
+        var cb = card("Custo estimado por categoria");
+        listInto(cb, d.chargeback, "Sem mensagens no periodo.", {
+          title: function (x) { return x.category; },
+          sub: function (x) { return x.qtd + " msgs"; },
+          tag: function (x) { return "US$ " + Number(x.custo_estimado_usd || 0).toFixed(2); },
+        });
+        content.appendChild(cb);
+        postHeight();
       }).catch(function () { postHeight(); });
     }
   }

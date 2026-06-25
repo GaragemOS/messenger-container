@@ -17,6 +17,12 @@ export function buildServer(): FastifyInstance {
     trustProxy: true,
   });
 
+  // Hardening: impede sniffing de content-type em todas as respostas.
+  app.addHook("onSend", async (_req, reply, payload) => {
+    reply.header("x-content-type-options", "nosniff");
+    return payload;
+  });
+
   // Console interno (pagina de login/gestao).
   const serveConsole = async (_req: FastifyRequest, reply: FastifyReply) =>
     reply.type("text/html; charset=utf-8").send(CONSOLE_HTML);
