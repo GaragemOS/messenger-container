@@ -1,5 +1,6 @@
 // Pagina do console interno (HTML servido pela central). Frontend sem comentarios
-// por convencao; app shell estilo SaaS, gestao por produto e builder visual de flows.
+// por convencao; app shell estilo SaaS, gestao por produto e construtor visual de
+// flows (editor tipo Wix com canvas em tamanho real, validacao e variaveis).
 export const CONSOLE_HTML = `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -19,7 +20,6 @@ export const CONSOLE_HTML = `<!doctype html>
   .muted { color: var(--muted); }
   button { font: inherit; cursor: pointer; border: 0; }
   input, select, textarea { font: inherit; }
-  a { color: var(--primary); }
 
   .btn { background: var(--primary); color: #fff; border-radius: 8px; padding: 9px 16px; font-weight: 600; font-size: 13px; }
   .btn:hover { filter: brightness(1.07); }
@@ -93,29 +93,56 @@ export const CONSOLE_HTML = `<!doctype html>
   .modal-card h3 { margin: 0 0 16px; font-size: 16px; }
 
   /* Flow builder */
-  .builder-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-  .builder-top .in { max-width: 320px; }
-  .builder { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
-  @media (max-width: 920px) { .builder { grid-template-columns: 1fr; } }
-  .screens-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-  .scr-tab { padding: 6px 12px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); font-size: 12px; font-weight: 600; color: var(--muted); }
-  .scr-tab.active { background: var(--primary-weak); color: var(--primary); border-color: var(--primary-weak); }
-  .comp { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; background: var(--panel); }
-  .comp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .comp-head .ct { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
-  .comp-head .cc { display: flex; gap: 2px; }
-  .mini { width: 26px; height: 26px; border-radius: 6px; background: var(--bg); color: var(--muted); font-size: 13px; display: grid; place-items: center; }
-  .mini:hover { background: var(--primary-weak); color: var(--primary); }
-  .add-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
-  .add-bar .btn { background: var(--primary-weak); color: var(--primary); }
-  .phone { border: 8px solid #11141A; border-radius: 28px; background: #fff; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.12); position: sticky; top: 0; }
-  .phone-head { background: #075E54; color: #fff; padding: 14px 16px; font-weight: 600; font-size: 14px; }
-  .phone-body { padding: 16px; min-height: 260px; display: flex; flex-direction: column; gap: 12px; background: #ECE5DD; }
-  .pv-heading { font-size: 17px; font-weight: 700; }
-  .pv-text { font-size: 13px; color: #444; }
-  .pv-field label { margin-bottom: 4px; }
-  .pv-box { background: #fff; border: 1px solid #cfcfcf; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #888; }
-  .pv-btn { background: #075E54; color: #fff; text-align: center; padding: 11px; border-radius: 8px; font-weight: 600; font-size: 14px; margin-top: auto; }
+  .fb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .fb-top .in { max-width: 320px; }
+  .fb { display: grid; grid-template-columns: 210px 1fr 300px; gap: 14px; align-items: start; }
+  @media (max-width: 1100px) { .fb { grid-template-columns: 1fr; } }
+  .fb-pane { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .fb-pane h4 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+  .pal { display: flex; flex-direction: column; gap: 6px; }
+  .pal button { text-align: left; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+  .pal button:hover { background: var(--primary-weak); border-color: var(--primary-weak); color: var(--primary); }
+  .scrs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .scrs .s { padding: 6px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; }
+  .scrs .s.active { background: var(--primary-weak); color: var(--primary); border-color: var(--primary-weak); }
+  .var { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .var:last-child { border-bottom: 0; }
+  .chip { background: var(--primary-weak); color: var(--primary); border-radius: 6px; padding: 3px 7px; font-size: 11px; font-family: ui-monospace, monospace; cursor: pointer; border: 0; }
+
+  .stage { display: flex; justify-content: center; }
+  .sheet { width: 360px; background: #fff; border-radius: 22px 22px 12px 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 14px 44px rgba(0,0,0,.14); display: flex; flex-direction: column; min-height: 580px; }
+  .sheet-head { background: #fff; border-bottom: 1px solid #eee; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .sheet-head .x { color: #555; font-size: 17px; }
+  .sheet-head .st { font-weight: 600; font-size: 15px; color: #111; outline: none; }
+  .sheet-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .sheet-foot { padding: 12px 16px 18px; }
+  .submit { background: #0a7cff; color: #fff; text-align: center; padding: 13px; border-radius: 24px; font-weight: 600; font-size: 15px; outline: none; }
+  .el { position: relative; border: 1.5px solid transparent; border-radius: 8px; padding: 5px; cursor: pointer; }
+  .el:hover { border-color: #dbe5ff; }
+  .el.sel { border-color: var(--primary); }
+  .el .drag { position: absolute; top: -10px; left: -10px; width: 22px; height: 22px; border-radius: 7px; background: var(--primary); color: #fff; font-size: 12px; display: none; place-items: center; cursor: grab; }
+  .el.sel .drag { display: grid; }
+  [contenteditable]:focus { outline: none; }
+  .e-h { font-size: 18px; font-weight: 700; color: #111; }
+  .e-sh { font-size: 15px; font-weight: 600; color: #111; }
+  .e-b { font-size: 14px; color: #333; line-height: 1.4; }
+  .e-c { font-size: 12px; color: #777; }
+  .e-lab { font-size: 13px; font-weight: 500; color: #333; margin-bottom: 5px; }
+  .e-box { border: 1px solid #d0d0d0; border-radius: 8px; padding: 11px 12px; font-size: 13px; color: #999; background: #fafafa; }
+  .e-help { font-size: 11px; color: #999; margin-top: 4px; }
+  .e-opt { border: 1px solid #e2e2e2; border-radius: 8px; padding: 9px 11px; font-size: 13px; display: flex; align-items: center; gap: 8px; margin-top: 6px; color: #333; }
+  .e-opt .mk { width: 16px; height: 16px; border: 1.5px solid #bbb; border-radius: 50%; flex: 0 0 auto; }
+  .e-opt.sq .mk { border-radius: 4px; }
+  .e-img { width: 100%; border-radius: 8px; display: block; }
+  .ph-img { width: 100%; height: 120px; border-radius: 8px; background: #eef0f5; display: grid; place-items: center; color: #9aa3b2; font-size: 13px; }
+  .prop .field { margin-bottom: 12px; }
+  .cnt { font-size: 11px; color: var(--muted); text-align: right; margin-top: 3px; }
+  .cnt.over { color: var(--danger); font-weight: 600; }
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); }
+  .opt-edit { display: flex; gap: 6px; margin-bottom: 6px; }
+  .valbox .vi { font-size: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); display: flex; gap: 6px; align-items: flex-start; }
+  .valbox .vi:last-child { border-bottom: 0; }
+  .valbox .vi.err { color: var(--danger); } .valbox .vi.warn { color: #B45309; } .valbox .vi.ok { color: var(--ok); }
 </style>
 </head>
 <body>
@@ -183,6 +210,7 @@ export const CONSOLE_HTML = `<!doctype html>
 </div>
 
 <script>
+  var DREF = "$" + "{data.";
   var $ = function (id) { return document.getElementById(id); };
   var el = function (tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
   function msg(id, t, k) { var e = $(id); e.textContent = t || ""; e.className = "msg" + (k ? " " + k : ""); }
@@ -218,9 +246,8 @@ export const CONSOLE_HTML = `<!doctype html>
     if (!products.length) { list.appendChild(el("div", "empty", "Nenhum produto.")); $("content").innerHTML = ""; $("content").appendChild(el("div", "empty", "Crie seu primeiro produto no +.")); $("topbar").textContent = ""; return; }
     products.forEach(function (p) {
       var it = el("div", "side-item" + (selected === p.id ? " active" : ""));
-      it.appendChild(el("div", null, p.name));
-      it.appendChild(el("div", "s2", p.slug));
-      it.onclick = function () { selected = p.id; curTab = "keys"; loadProducts(); openProduct(p); };
+      it.appendChild(el("div", null, p.name)); it.appendChild(el("div", "s2", p.slug));
+      it.onclick = function () { selected = p.id; curTab = "keys"; loadProducts(); };
       list.appendChild(it);
     });
     var cur = products.filter(function (p) { return p.id === selected; })[0] || null;
@@ -234,8 +261,7 @@ export const CONSOLE_HTML = `<!doctype html>
     var tabs = el("div", "tabs");
     [["keys", "Chaves de API"], ["multitenant", "Multitenant"], ["templates", "Templates"], ["flows", "Flows"], ["metrics", "Métricas"]].forEach(function (t) {
       var b = el("button", "tab" + (curTab === t[0] ? " active" : ""), t[1]);
-      b.onclick = function () { curTab = t[0]; openProduct(p); };
-      tabs.appendChild(b);
+      b.onclick = function () { curTab = t[0]; openProduct(p); }; tabs.appendChild(b);
     });
     tb.appendChild(tabs);
     var c = $("content"); c.textContent = "";
@@ -251,34 +277,19 @@ export const CONSOLE_HTML = `<!doctype html>
     api("/api/products/" + p.id + "/embed-token", { class: "metrics" }).then(function (r) {
       c.textContent = "";
       if (!r.ok || !r.data.embed_token) { c.appendChild(el("div", "empty", "Não foi possível carregar.")); return; }
-      var card = el("div", "card");
-      var f = document.createElement("iframe"); f.className = "screen-frame"; f.src = "/v1/screen/metrics?t=" + encodeURIComponent(r.data.embed_token);
-      card.appendChild(f); c.appendChild(card);
+      var card = el("div", "card"); var f = document.createElement("iframe"); f.className = "screen-frame"; f.src = "/v1/screen/metrics?t=" + encodeURIComponent(r.data.embed_token); card.appendChild(f); c.appendChild(card);
     });
   }
 
   function renderKeys(p, c) {
-    var card = el("div", "card");
-    var head = el("div", "row-head"); head.appendChild(el("h3", null, "Chaves de API"));
+    var card = el("div", "card"); var head = el("div", "row-head"); head.appendChild(el("h3", null, "Chaves de API"));
     var gen = el("button", "btn sm", "Gerar nova chave"); head.appendChild(gen); card.appendChild(head);
-    var box = el("div"); card.appendChild(box);
-    var reveal = el("div"); card.appendChild(reveal);
-    c.appendChild(card);
-    gen.onclick = async function () {
-      var r = await api("/api/products/" + p.id + "/keys", {});
-      if (r.ok && r.data.key) { reveal.textContent = ""; var rv = el("div", "reveal"); rv.appendChild(el("span", "warn", "Copie agora — não será exibida novamente.")); rv.appendChild(document.createTextNode(r.data.key)); reveal.appendChild(rv); loadKeys(); }
-    };
+    var box = el("div"); card.appendChild(box); var reveal = el("div"); card.appendChild(reveal); c.appendChild(card);
+    gen.onclick = async function () { var r = await api("/api/products/" + p.id + "/keys", {}); if (r.ok && r.data.key) { reveal.textContent = ""; var rv = el("div", "reveal"); rv.appendChild(el("span", "warn", "Copie agora — não será exibida novamente.")); rv.appendChild(document.createTextNode(r.data.key)); reveal.appendChild(rv); loadKeys(); } };
     async function loadKeys() {
       var r = await apiGet("/api/products/" + p.id + "/keys"); box.textContent = "";
-      var keys = (r.data && r.data.keys) || [];
-      if (!keys.length) { box.appendChild(el("div", "empty", "Nenhuma chave gerada.")); return; }
-      keys.forEach(function (k) {
-        var row = el("div", "list-row");
-        var left = el("div"); left.appendChild(el("code", null, k.key_id + "…" + k.last_four)); row.appendChild(left);
-        var right = el("div", "inline-actions"); right.appendChild(el("span", "badge" + (k.status === "active" ? " green" : " red"), k.status));
-        if (k.status === "active") { var rev = el("button", "btn danger", "revogar"); rev.onclick = async function () { await api("/api/keys/" + k.id + "/revoke", {}); loadKeys(); }; right.appendChild(rev); }
-        row.appendChild(right); box.appendChild(row);
-      });
+      var keys = (r.data && r.data.keys) || []; if (!keys.length) { box.appendChild(el("div", "empty", "Nenhuma chave gerada.")); return; }
+      keys.forEach(function (k) { var row = el("div", "list-row"); var left = el("div"); left.appendChild(el("code", null, k.key_id + "…" + k.last_four)); row.appendChild(left); var right = el("div", "inline-actions"); right.appendChild(el("span", "badge" + (k.status === "active" ? " green" : " red"), k.status)); if (k.status === "active") { var rev = el("button", "btn danger", "revogar"); rev.onclick = async function () { await api("/api/keys/" + k.id + "/revoke", {}); loadKeys(); }; right.appendChild(rev); } row.appendChild(right); box.appendChild(row); });
     }
     loadKeys();
   }
@@ -295,13 +306,10 @@ export const CONSOLE_HTML = `<!doctype html>
     var add = el("button", "btn sm", "Adicionar empresa"); add.style.marginTop = "12px";
     add.onclick = async function () { if (!nm.value.trim()) return; await api("/api/products/" + p.id + "/tenants", { name: nm.value.trim(), external_ref: ext.value.trim() || null }); loadMultitenant(p, c); };
     form.appendChild(add); c.textContent = ""; c.appendChild(form);
-
     if (!companies.length) { c.appendChild(el("div", "empty", "Nenhuma empresa cadastrada ainda.")); return; }
     companies.forEach(function (co) {
-      var card = el("div", "card");
-      card.appendChild(el("h3", null, co.name + (co.external_ref ? "  ·  " + co.external_ref : "")));
-      var cw = wabas.filter(function (w) { return w.company_id === co.id; });
-      cw.forEach(function (w) {
+      var card = el("div", "card"); card.appendChild(el("h3", null, co.name + (co.external_ref ? "  ·  " + co.external_ref : "")));
+      wabas.filter(function (w) { return w.company_id === co.id; }).forEach(function (w) {
         card.appendChild(el("div", "l2", "WABA " + w.waba_id_meta));
         var pn = inp("Phone Number ID (Meta)"), dn = inp("Nome de exibição"), dp = inp("Telefone");
         var bar = el("div", "inline-actions"); [pn, dn, dp].forEach(function (x) { bar.appendChild(x); });
@@ -310,19 +318,16 @@ export const CONSOLE_HTML = `<!doctype html>
         bar.style.margin = "6px 0 12px"; card.appendChild(bar);
       });
       var wid = inp("ID da WABA (Meta)"), wn = inp("Nome (opcional)");
-      var wbar = el("div", "inline-actions"); wbar.appendChild(wid); wbar.appendChild(wn);
-      var wb = el("button", "btn sm ghost", "+ WABA"); wbar.appendChild(wb);
+      var wbar = el("div", "inline-actions"); wbar.appendChild(wid); wbar.appendChild(wn); var wb = el("button", "btn sm ghost", "+ WABA"); wbar.appendChild(wb);
       wb.onclick = async function () { if (!wid.value.trim()) return; await api("/api/products/" + p.id + "/tenants/" + co.id + "/wabas", { waba_id_meta: wid.value.trim(), name: wn.value.trim() || null }); loadMultitenant(p, c); };
       card.appendChild(wbar);
-      var cn = numbers.filter(function (n) { return n.company_id === co.id; });
-      cn.forEach(function (n) { var row = el("div", "list-row"); var left = el("div"); left.appendChild(el("div", "l1", n.display_name || n.phone_number_id_meta)); if (n.display_phone) left.appendChild(el("div", "l2", n.display_phone)); row.appendChild(left); row.appendChild(el("span", "badge", n.quality_rating)); card.appendChild(row); });
+      numbers.filter(function (n) { return n.company_id === co.id; }).forEach(function (n) { var row = el("div", "list-row"); var left = el("div"); left.appendChild(el("div", "l1", n.display_name || n.phone_number_id_meta)); if (n.display_phone) left.appendChild(el("div", "l2", n.display_phone)); row.appendChild(left); row.appendChild(el("span", "badge", n.quality_rating)); card.appendChild(row); });
       c.appendChild(card);
     });
   }
 
   async function loadTemplates(p, c) {
-    var tr = await apiGet("/api/products/" + p.id + "/tenants");
-    var wabas = (tr.data && tr.data.wabas) || [];
+    var tr = await apiGet("/api/products/" + p.id + "/tenants"); var wabas = (tr.data && tr.data.wabas) || [];
     var form = el("div", "card"); form.appendChild(el("h3", null, "Novo template"));
     if (!wabas.length) { form.appendChild(el("div", "empty", "Cadastre uma WABA na aba Multitenant primeiro.")); }
     else {
@@ -338,151 +343,269 @@ export const CONSOLE_HTML = `<!doctype html>
       form.appendChild(b); form.appendChild(m);
     }
     c.textContent = ""; c.appendChild(form);
-    var lr = await apiGet("/api/products/" + p.id + "/templates");
-    var templates = (lr.data && lr.data.templates) || [];
+    var lr = await apiGet("/api/products/" + p.id + "/templates"); var templates = (lr.data && lr.data.templates) || [];
     var listCard = el("div", "card"); listCard.appendChild(el("h3", null, "Templates (" + templates.length + ")"));
     if (!templates.length) listCard.appendChild(el("div", "empty", "Nenhum template."));
     templates.forEach(function (t) { var row = el("div", "list-row"); var left = el("div"); left.appendChild(el("div", "l1", t.name)); left.appendChild(el("div", "l2", t.language + " · " + t.category)); row.appendChild(left); row.appendChild(el("span", "badge", t.status)); listCard.appendChild(row); });
     c.appendChild(listCard);
   }
 
-  /* ---- Flows: lista + builder visual ---- */
+  /* ===================== FLOWS (construtor visual) ===================== */
+  var LIM = { heading: 80, subheading: 80, body: 4096, caption: 4096, footer: 35, inputLabel: 20, taLabel: 20, helper: 80, selLabel: 30, dateLabel: 40, title: 30 };
+
+  function normalizeBuilder(j) {
+    if (j && j.builder && j.builder.screens) return j.builder;
+    return { screens: [{ id: "TELA_1", title: "Tela 1", variables: [], components: [] }] };
+  }
+  function newEl(t) {
+    if (t === "heading") return { t: t, text: "Título" };
+    if (t === "subheading") return { t: t, text: "Subtítulo" };
+    if (t === "body") return { t: t, text: "Texto do parágrafo" };
+    if (t === "caption") return { t: t, text: "Legenda" };
+    if (t === "image") return { t: t, src: "", alt: "" };
+    if (t === "input") return { t: t, name: "campo", label: "Rótulo", inputType: "text", required: false, helper: "", maxChars: "" };
+    if (t === "textarea") return { t: t, name: "texto", label: "Rótulo", required: false, helper: "", maxLength: "" };
+    if (t === "dropdown" || t === "radio" || t === "checkbox") return { t: t, name: "opcao", label: "Escolha uma opção", required: false, options: ["Opção 1", "Opção 2"] };
+    if (t === "date") return { t: t, name: "data", label: "Data", required: false, helper: "" };
+    if (t === "footer") return { t: t, label: "Continuar" };
+  }
+  function isInput(t) { return ["input", "textarea", "dropdown", "radio", "checkbox", "date"].indexOf(t) >= 0; }
+  function limitOf(cp) {
+    if (cp.t === "footer") return LIM.footer;
+    if (cp.t === "input" || cp.t === "textarea") return LIM.inputLabel;
+    if (cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") return LIM.selLabel;
+    if (cp.t === "date") return LIM.dateLabel;
+    return LIM[cp.t] || 9999;
+  }
+  function textField(cp) { return cp.t === "footer" ? "label" : (isInput(cp.t) ? "label" : "text"); }
+
+  function mapComp(cp) {
+    if (cp.t === "heading") return { type: "TextHeading", text: cp.text || "" };
+    if (cp.t === "subheading") return { type: "TextSubheading", text: cp.text || "" };
+    if (cp.t === "body") return { type: "TextBody", text: cp.text || "" };
+    if (cp.t === "caption") return { type: "TextCaption", text: cp.text || "" };
+    if (cp.t === "image") return { type: "Image", src: cp.src || "", "scale-type": "contain", "alt-text": cp.alt || "" };
+    if (cp.t === "input") { var o = { type: "TextInput", name: cp.name, label: cp.label, "input-type": cp.inputType || "text", required: !!cp.required }; if (cp.helper) o["helper-text"] = cp.helper; if (cp.maxChars) o["max-chars"] = Number(cp.maxChars); return o; }
+    if (cp.t === "textarea") { var o2 = { type: "TextArea", name: cp.name, label: cp.label, required: !!cp.required }; if (cp.helper) o2["helper-text"] = cp.helper; if (cp.maxLength) o2["max-length"] = Number(cp.maxLength); return o2; }
+    if (cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") { var tt = { dropdown: "Dropdown", radio: "RadioButtonsGroup", checkbox: "CheckboxGroup" }[cp.t]; return { type: tt, name: cp.name, label: cp.label, required: !!cp.required, "data-source": (cp.options || []).map(function (o, i) { return { id: String(i), title: o }; }) }; }
+    if (cp.t === "date") { var o3 = { type: "DatePicker", name: cp.name, label: cp.label, required: !!cp.required }; if (cp.helper) o3["helper-text"] = cp.helper; return o3; }
+    return null;
+  }
+  function exportFlow(model) {
+    var screens = model.screens.map(function (s, idx) {
+      var last = idx === model.screens.length - 1;
+      var children = [], formCh = [], hasInput = false, footer = null;
+      s.components.forEach(function (cp) {
+        if (cp.t === "footer") { footer = cp; return; }
+        var m = mapComp(cp); if (!m) return;
+        if (isInput(cp.t)) { hasInput = true; formCh.push(m); } else children.push(m);
+      });
+      var footerComp = { type: "Footer", label: (footer && footer.label) || "Continuar", "on-click-action": last ? { name: "complete", payload: {} } : { name: "navigate", next: { type: "screen", name: model.screens[idx + 1].id }, payload: {} } };
+      if (hasInput) { formCh.push(footerComp); children.push({ type: "Form", name: "form", children: formCh }); } else if (footer) children.push(footerComp);
+      var scr = { id: s.id, title: s.title, terminal: last, layout: { type: "SingleColumnLayout", children: children } };
+      var data = {}; (s.variables || []).forEach(function (v) { data[v.name] = { type: v.type || "string", __example__: v.example || "" }; });
+      if (Object.keys(data).length) scr.data = data;
+      return scr;
+    });
+    return { version: "7.0", screens: screens };
+  }
+
+  function validate(model) {
+    var out = [];
+    model.screens.forEach(function (s, si) {
+      var prefix = "Tela " + (si + 1) + ": ";
+      if ((s.title || "").length > LIM.title) out.push({ k: "err", m: prefix + "título com " + s.title.length + "/" + LIM.title + " caracteres" });
+      var imgs = 0, footers = 0, names = {};
+      s.components.forEach(function (cp) {
+        var tf = textField(cp), val = (cp[tf] || "");
+        if (val.length > limitOf(cp)) out.push({ k: "err", m: prefix + "texto com " + val.length + "/" + limitOf(cp) + " caracteres (máx " + limitOf(cp) + ")" });
+        if (isInput(cp.t) && !val.trim()) out.push({ k: "err", m: prefix + "um campo está sem rótulo" });
+        if (cp.helper && cp.helper.length > LIM.helper) out.push({ k: "err", m: prefix + "ajuda com " + cp.helper.length + "/" + LIM.helper });
+        if (isInput(cp.t)) { if (names[cp.name]) out.push({ k: "err", m: prefix + 'name "' + cp.name + '" repetido' }); names[cp.name] = 1; }
+        if (cp.t === "image") { imgs++; if (!cp.src) out.push({ k: "warn", m: prefix + "imagem sem arquivo" }); }
+        if (cp.t === "footer") footers++;
+        if ((cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") && (cp.options || []).length < 1) out.push({ k: "err", m: prefix + "lista sem opções" });
+      });
+      if (imgs > 3) out.push({ k: "err", m: prefix + "máximo de 3 imagens por tela (tem " + imgs + ")" });
+      if (footers > 1) out.push({ k: "err", m: prefix + "apenas um botão de rodapé por tela" });
+      if (si === model.screens.length - 1 && footers === 0) out.push({ k: "warn", m: prefix + "tela final precisa de um botão para enviar" });
+    });
+    return out;
+  }
+
   async function loadFlows(p, c) {
     c.textContent = "";
     var head = el("div", "row-head"); head.appendChild(el("h3", null, "Flows")); var nb = el("button", "btn sm", "+ Novo flow"); head.appendChild(nb);
     var wrap = el("div", "card"); wrap.appendChild(head);
-    var lr = await apiGet("/api/products/" + p.id + "/flows");
-    var flows = (lr.data && lr.data.flows) || [];
+    var lr = await apiGet("/api/products/" + p.id + "/flows"); var flows = (lr.data && lr.data.flows) || [];
     if (!flows.length) wrap.appendChild(el("div", "empty", "Nenhum flow. Crie um no construtor visual."));
     flows.forEach(function (f) {
       var row = el("div", "list-row"); var left = el("div"); left.appendChild(el("div", "l1", f.name)); row.appendChild(left);
       var right = el("div", "inline-actions"); right.appendChild(el("span", "badge", f.status)); var ed = el("button", "btn sm ghost", "Editar"); right.appendChild(ed); row.appendChild(right);
-      ed.onclick = async function () { var d = await apiGet("/api/products/" + p.id + "/flows/" + f.id); openBuilder(p, c, { id: f.id, name: f.name, model: normalizeModel(d.data && d.data.flow_json) }); };
+      ed.onclick = async function () { var d = await apiGet("/api/products/" + p.id + "/flows/" + f.id); openBuilder(p, c, { id: f.id, name: f.name, model: normalizeBuilder(d.data && d.data.flow_json) }); };
       wrap.appendChild(row);
     });
-    c.appendChild(wrap);
-    nb.onclick = function () { openBuilder(p, c, null); };
-  }
-
-  function normalizeModel(j) {
-    if (j && j.screens && j.screens.length) return j;
-    return { version: 1, screens: [{ id: "TELA_1", title: "Tela 1", components: [] }] };
+    c.appendChild(wrap); nb.onclick = function () { openBuilder(p, c, null); };
   }
 
   function openBuilder(p, c, existing) {
-    var flow = existing || { id: null, name: "", model: normalizeModel(null) };
-    var st = { name: flow.name, model: flow.model, scr: 0 };
+    var st = { id: existing ? existing.id : null, name: existing ? existing.name : "", model: existing ? existing.model : normalizeBuilder(null), scr: 0, sel: -1 };
     c.textContent = "";
 
-    var top = el("div", "builder-top");
+    var top = el("div", "fb-top");
     var nameIn = inp("Nome do flow"); nameIn.value = st.name; nameIn.oninput = function () { st.name = nameIn.value; };
     top.appendChild(nameIn);
     var acts = el("div", "inline-actions");
+    var jsonBtn = el("button", "btn ghost", "Ver JSON");
     var back = el("button", "btn ghost", "Voltar"); back.onclick = function () { loadFlows(p, c); };
     var save = el("button", "btn", "Salvar flow");
-    acts.appendChild(back); acts.appendChild(save); top.appendChild(acts);
+    acts.appendChild(jsonBtn); acts.appendChild(back); acts.appendChild(save); top.appendChild(acts);
     c.appendChild(top);
     var smsg = el("div", "msg"); c.appendChild(smsg);
 
-    var builder = el("div", "builder");
-    var editor = el("div", "card"); var preview = el("div"); builder.appendChild(editor); builder.appendChild(preview);
-    c.appendChild(builder);
+    var fb = el("div", "fb");
+    var left = el("div", "fb-pane"), center = el("div"), right = el("div", "fb-pane prop");
+    fb.appendChild(left); fb.appendChild(center); fb.appendChild(right); c.appendChild(fb);
 
     function screen() { return st.model.screens[st.scr]; }
 
-    function renderPreview() {
-      preview.textContent = "";
-      var phone = el("div", "phone");
-      phone.appendChild(el("div", "phone-head", screen().title || "Tela"));
-      var pb = el("div", "phone-body");
-      screen().components.forEach(function (cp) {
-        if (cp.type === "heading") pb.appendChild(el("div", "pv-heading", cp.text || "Título"));
-        else if (cp.type === "text") pb.appendChild(el("div", "pv-text", cp.text || "Texto..."));
-        else if (cp.type === "input") { var w = el("div", "pv-field"); w.appendChild(el("label", null, cp.label || "Campo")); w.appendChild(el("div", "pv-box", "Digite...")); pb.appendChild(w); }
-        else if (cp.type === "dropdown") { var w2 = el("div", "pv-field"); w2.appendChild(el("label", null, cp.label || "Seleção")); w2.appendChild(el("div", "pv-box", (cp.options && cp.options[0]) || "Selecione" + "  ▾")); pb.appendChild(w2); }
-        else if (cp.type === "button") pb.appendChild(el("div", "pv-btn", cp.label || "Botão"));
+    function renderLeft() {
+      left.textContent = "";
+      var scrs = el("div", "scrs");
+      st.model.screens.forEach(function (s, i) { var b = el("button", "s" + (i === st.scr ? " active" : ""), s.title || ("Tela " + (i + 1))); b.onclick = function () { st.scr = i; st.sel = -1; renderAll(); }; scrs.appendChild(b); });
+      var addS = el("button", "s", "+ Tela"); addS.onclick = function () { var n = st.model.screens.length + 1; st.model.screens.push({ id: "TELA_" + n, title: "Tela " + n, variables: [], components: [] }); st.scr = st.model.screens.length - 1; st.sel = -1; renderAll(); }; scrs.appendChild(addS);
+      left.appendChild(scrs);
+      if (st.model.screens.length > 1) { var del = el("button", "btn danger", "remover tela"); del.onclick = function () { st.model.screens.splice(st.scr, 1); st.scr = 0; st.sel = -1; renderAll(); }; left.appendChild(del); }
+
+      left.appendChild(el("h4", null, "Elementos"));
+      var pal = el("div", "pal");
+      [["heading", "Cabeçalho"], ["subheading", "Subtítulo"], ["body", "Parágrafo"], ["caption", "Legenda"], ["image", "Imagem"], ["input", "Campo de texto"], ["textarea", "Área de texto"], ["dropdown", "Lista suspensa"], ["radio", "Escolha única"], ["checkbox", "Múltipla escolha"], ["date", "Data"], ["footer", "Botão (rodapé)"]].forEach(function (t) {
+        var b = el("button", null, t[1]); b.onclick = function () { screen().components.push(newEl(t[0])); st.sel = screen().components.length - 1; renderAll(); }; pal.appendChild(b);
       });
-      phone.appendChild(pb); preview.appendChild(phone);
+      left.appendChild(pal);
+
+      left.appendChild(el("h4", null, "Variáveis"));
+      (screen().variables || []).forEach(function (v, i) {
+        var row = el("div", "var");
+        var chip = el("button", "chip", DREF + v.name + "}"); chip.title = "Inserir no texto selecionado"; chip.onclick = function () { document.execCommand("insertText", false, DREF + v.name + "}"); };
+        row.appendChild(chip); var x = el("button", "btn danger", "✕"); x.onclick = function () { screen().variables.splice(i, 1); renderAll(); }; row.appendChild(x); left.appendChild(row);
+      });
+      var vn = inp("nome_da_variavel"); var vadd = el("button", "btn sm ghost", "+ variável"); vadd.style.marginTop = "8px";
+      vadd.onclick = function () { var n = vn.value.trim().replace(/[^a-zA-Z0-9_]/g, "_"); if (!n) return; if (!screen().variables) screen().variables = []; screen().variables.push({ name: n, type: "string", example: "" }); renderAll(); };
+      left.appendChild(vn); left.appendChild(vadd);
     }
 
-    function compEditor(cp, idx) {
-      var box = el("div", "comp");
-      var h = el("div", "comp-head");
-      var labels = { heading: "Título", text: "Texto", input: "Campo", dropdown: "Lista", button: "Botão" };
-      h.appendChild(el("span", "ct", labels[cp.type] || cp.type));
-      var cc = el("div", "cc");
-      var up = el("button", "mini", "↑"), dn = el("button", "mini", "↓"), rm = el("button", "mini", "✕");
-      up.onclick = function () { if (idx > 0) { var a = screen().components; var t = a[idx - 1]; a[idx - 1] = a[idx]; a[idx] = t; renderEditor(); } };
-      dn.onclick = function () { var a = screen().components; if (idx < a.length - 1) { var t = a[idx + 1]; a[idx + 1] = a[idx]; a[idx] = t; renderEditor(); } };
-      rm.onclick = function () { screen().components.splice(idx, 1); renderEditor(); };
-      cc.appendChild(up); cc.appendChild(dn); cc.appendChild(rm); h.appendChild(cc); box.appendChild(h);
+    function counters() {
+      var cp = screen().components[st.sel];
+      // atualiza apenas validacao e contador do selecionado
+      renderRight(); renderValidationOnly();
+      if (cp) {}
+    }
+    var valBox = null;
+    function renderValidationOnly() { if (!valBox) return; valBox.textContent = ""; var errs = validate(st.model); if (!errs.length) { valBox.appendChild(el("div", "vi ok", "Sem erros. Pronto para salvar.")); return; } errs.forEach(function (e) { valBox.appendChild(el("div", "vi " + e.k, (e.k === "err" ? "✕ " : "! ") + e.m)); }); }
 
-      if (cp.type === "heading" || cp.type === "text" || cp.type === "button") {
-        var key = cp.type === "button" ? "label" : "text";
-        var i = inp(cp.type === "button" ? "Texto do botão" : "Texto"); i.value = cp[key] || "";
-        i.oninput = function () { cp[key] = i.value; renderPreview(); }; box.appendChild(i);
-      } else if (cp.type === "input") {
-        var g = el("div", "grid2"); var l = inp("Rótulo"); l.value = cp.label || ""; var nm = inp("name (campo)"); nm.value = cp.name || "";
-        l.oninput = function () { cp.label = l.value; renderPreview(); }; nm.oninput = function () { cp.name = nm.value; };
-        g.appendChild(l); g.appendChild(nm); box.appendChild(g);
-      } else if (cp.type === "dropdown") {
-        var g2 = el("div", "grid2"); var l2 = inp("Rótulo"); l2.value = cp.label || ""; var n2 = inp("name (campo)"); n2.value = cp.name || "";
-        l2.oninput = function () { cp.label = l2.value; renderPreview(); }; n2.oninput = function () { cp.name = n2.value; };
-        g2.appendChild(l2); g2.appendChild(n2); box.appendChild(g2);
-        var op = inp("Opções (separadas por vírgula)"); op.value = (cp.options || []).join(", "); op.style.marginTop = "8px";
-        op.oninput = function () { cp.options = op.value.split(",").map(function (s) { return s.trim(); }).filter(Boolean); renderPreview(); }; box.appendChild(op);
+    function editable(cls, val, onIn) {
+      var d = el("div", cls); d.contentEditable = "true"; d.textContent = val || ""; d.spellcheck = false;
+      d.oninput = function () { onIn(d.textContent); renderValidationOnly(); renderRight(); };
+      d.onfocus = function () { /* selection handled by element click */ };
+      return d;
+    }
+
+    function renderStage() {
+      center.textContent = "";
+      var stage = el("div", "stage"); var sheet = el("div", "sheet");
+      var sh = el("div", "sheet-head"); sh.appendChild(el("span", "x", "✕"));
+      var stt = el("div", "st"); stt.contentEditable = "true"; stt.spellcheck = false; stt.textContent = screen().title || ""; stt.oninput = function () { screen().title = stt.textContent; var tab = left.querySelector(".scrs .s.active"); if (tab) tab.textContent = stt.textContent || ("Tela " + (st.scr + 1)); renderValidationOnly(); }; sh.appendChild(stt);
+      sheet.appendChild(sh);
+      var body = el("div", "sheet-body"); var foot = el("div", "sheet-foot");
+
+      screen().components.forEach(function (cp, idx) {
+        var wrap = el("div", "el" + (idx === st.sel ? " sel" : ""));
+        var drag = el("div", "drag", "⠿"); wrap.appendChild(drag);
+        wrap.draggable = true;
+        wrap.ondragstart = function (e) { st.drag = idx; e.dataTransfer.effectAllowed = "move"; };
+        wrap.ondragover = function (e) { e.preventDefault(); };
+        wrap.ondrop = function (e) { e.preventDefault(); var from = st.drag, to = idx; if (from == null || from === to) return; var a = screen().components; var m = a.splice(from, 1)[0]; a.splice(to, 0, m); st.sel = to; renderAll(); };
+        wrap.onclick = function (e) { if (e.target.getAttribute && e.target.getAttribute("contenteditable") === "true") return; st.sel = idx; markSel(); renderRight(); };
+
+        if (cp.t === "heading") wrap.appendChild(editable("e-h", cp.text, function (v) { cp.text = v; }));
+        else if (cp.t === "subheading") wrap.appendChild(editable("e-sh", cp.text, function (v) { cp.text = v; }));
+        else if (cp.t === "body") wrap.appendChild(editable("e-b", cp.text, function (v) { cp.text = v; }));
+        else if (cp.t === "caption") wrap.appendChild(editable("e-c", cp.text, function (v) { cp.text = v; }));
+        else if (cp.t === "image") { if (cp.src) { var im = el("img", "e-img"); im.src = cp.src; wrap.appendChild(im); } else wrap.appendChild(el("div", "ph-img", "Imagem (envie no painel →)")); }
+        else if (cp.t === "footer") { var fb2 = el("div", "submit"); fb2.contentEditable = "true"; fb2.spellcheck = false; fb2.textContent = cp.label || ""; fb2.oninput = function () { cp.label = fb2.textContent; renderValidationOnly(); renderRight(); }; wrap.appendChild(fb2); foot.appendChild(wrap); return; }
+        else {
+          wrap.appendChild(editable("e-lab", cp.label, function (v) { cp.label = v; }));
+          if (cp.t === "input" || cp.t === "textarea") wrap.appendChild(el("div", "e-box", cp.t === "textarea" ? "Texto longo..." : "Digite..."));
+          else if (cp.t === "date") wrap.appendChild(el("div", "e-box", "DD/MM/AAAA  📅"));
+          else { (cp.options || []).forEach(function (op) { var o = el("div", "e-opt" + (cp.t === "checkbox" ? " sq" : "")); o.appendChild(el("span", "mk")); o.appendChild(el("span", null, op)); wrap.appendChild(o); }); }
+          if (cp.helper) wrap.appendChild(el("div", "e-help", cp.helper));
+        }
+        body.appendChild(wrap);
+      });
+      sheet.appendChild(body); sheet.appendChild(foot); stage.appendChild(sheet); center.appendChild(stage);
+    }
+    function markSel() { var els = center.querySelectorAll(".el"); els.forEach(function (n, i) { n.classList.toggle("sel", i === st.sel); }); }
+
+    function renderRight() {
+      right.textContent = "";
+      right.appendChild(el("h4", null, "Propriedades"));
+      var cp = screen().components[st.sel];
+      if (!cp) { right.appendChild(el("div", "muted", "Selecione um elemento no canvas para editar.")); }
+      else {
+        var tf = textField(cp);
+        if (cp.t !== "image") {
+          var len = (cp[tf] || "").length, lim = limitOf(cp);
+          var cnt = el("div", "cnt" + (len > lim ? " over" : ""), len + " / " + lim + " caracteres"); right.appendChild(cnt);
+        }
+        if (cp.t === "image") {
+          var f = el("div", "field"); f.appendChild(el("label", null, "Arquivo (JPEG/PNG, ≤300KB)"));
+          var fileIn = document.createElement("input"); fileIn.type = "file"; fileIn.accept = "image/png,image/jpeg"; fileIn.className = "in";
+          fileIn.onchange = function () { var file = fileIn.files[0]; if (!file) return; if (file.size > 300 * 1024) { alert("Imagem acima de 300KB."); return; } var rd = new FileReader(); rd.onload = function () { cp.src = rd.result; renderAll(); }; rd.readAsDataURL(file); };
+          f.appendChild(fileIn); right.appendChild(f);
+          var fa = el("div", "field"); fa.appendChild(el("label", null, "Texto alternativo")); var ai = inp("descrição", cp.alt); ai.oninput = function () { cp.alt = ai.value; }; fa.appendChild(ai); right.appendChild(fa);
+        }
+        if (isInput(cp.t)) {
+          var fn = el("div", "field"); fn.appendChild(el("label", null, "name (identificador)")); var ni = inp("name", cp.name); ni.oninput = function () { cp.name = ni.value.replace(/[^a-zA-Z0-9_]/g, "_"); renderValidationOnly(); }; fn.appendChild(ni); right.appendChild(fn);
+          var tg = el("label", "toggle"); var ck = document.createElement("input"); ck.type = "checkbox"; ck.checked = !!cp.required; ck.onchange = function () { cp.required = ck.checked; }; tg.appendChild(ck); tg.appendChild(document.createTextNode("Obrigatório")); right.appendChild(tg);
+        }
+        if (cp.t === "input") {
+          var fi = el("div", "field"); fi.style.marginTop = "10px"; fi.appendChild(el("label", null, "Tipo")); var ts = selOf(["text", "email", "number", "phone", "password", "passcode"], function (v) { return v; }, function (v) { return v; }); ts.value = cp.inputType || "text"; ts.onchange = function () { cp.inputType = ts.value; }; fi.appendChild(ts); right.appendChild(fi);
+        }
+        if (cp.t === "input" || cp.t === "textarea" || cp.t === "date") {
+          var fh = el("div", "field"); fh.appendChild(el("label", null, "Texto de ajuda (máx 80)")); var hi = inp("ajuda", cp.helper); hi.oninput = function () { cp.helper = hi.value; renderStage(); renderValidationOnly(); }; fh.appendChild(hi); right.appendChild(fh);
+        }
+        if (cp.t === "dropdown" || cp.t === "radio" || cp.t === "checkbox") {
+          right.appendChild(el("label", null, "Opções"));
+          (cp.options || []).forEach(function (op, i) {
+            var row = el("div", "opt-edit"); var oi = inp("opção", op); oi.oninput = function () { cp.options[i] = oi.value; renderStage(); }; row.appendChild(oi);
+            var x = el("button", "btn danger", "✕"); x.onclick = function () { cp.options.splice(i, 1); renderAll(); }; row.appendChild(x); right.appendChild(row);
+          });
+          var addo = el("button", "btn sm ghost", "+ opção"); addo.onclick = function () { cp.options.push("Nova opção"); renderAll(); }; right.appendChild(addo);
+        }
+        var rm = el("button", "btn danger", "remover elemento"); rm.style.marginTop = "14px"; rm.onclick = function () { screen().components.splice(st.sel, 1); st.sel = -1; renderAll(); }; right.appendChild(rm);
       }
-      return box;
+      right.appendChild(el("h4", null, "Validação")); right.lastChild.style.marginTop = "16px";
+      valBox = el("div", "valbox"); right.appendChild(valBox); renderValidationOnly();
     }
 
-    function renderEditor() {
-      editor.textContent = "";
-      var sb = el("div", "screens-bar");
-      st.model.screens.forEach(function (s, i) {
-        var t = el("button", "scr-tab" + (i === st.scr ? " active" : ""), s.title || ("Tela " + (i + 1)));
-        t.onclick = function () { st.scr = i; renderEditor(); }; sb.appendChild(t);
-      });
-      var addScr = el("button", "scr-tab", "+ Tela");
-      addScr.onclick = function () { st.model.screens.push({ id: "TELA_" + (st.model.screens.length + 1), title: "Tela " + (st.model.screens.length + 1), components: [] }); st.scr = st.model.screens.length - 1; renderEditor(); };
-      sb.appendChild(addScr); editor.appendChild(sb);
+    function renderAll() { renderLeft(); renderStage(); renderRight(); }
 
-      var tf = el("div", "field"); tf.appendChild(el("label", null, "Título da tela"));
-      var ti = inp("Título"); ti.value = screen().title || ""; ti.oninput = function () { screen().title = ti.value; renderPreview(); var tab = sb.children[st.scr]; if (tab) tab.textContent = ti.value || ("Tela " + (st.scr + 1)); };
-      tf.appendChild(ti);
-      if (st.model.screens.length > 1) { var del = el("button", "btn danger", "remover tela"); del.style.marginTop = "8px"; del.onclick = function () { st.model.screens.splice(st.scr, 1); st.scr = 0; renderEditor(); }; tf.appendChild(del); }
-      editor.appendChild(tf);
-
-      screen().components.forEach(function (cp, i) { editor.appendChild(compEditor(cp, i)); });
-
-      var ab = el("div", "add-bar");
-      [["heading", "+ Título"], ["text", "+ Texto"], ["input", "+ Campo"], ["dropdown", "+ Lista"], ["button", "+ Botão"]].forEach(function (t) {
-        var b = el("button", "btn sm", t[1]);
-        b.onclick = function () { var c0 = { type: t[0] }; if (t[0] === "dropdown") c0.options = []; screen().components.push(c0); renderEditor(); };
-        ab.appendChild(b);
-      });
-      editor.appendChild(ab);
-      renderPreview();
-    }
-
+    jsonBtn.onclick = function () { var w = window.open("", "_blank"); w.document.write("<pre style='padding:20px;font:12px ui-monospace'>" + JSON.stringify(exportFlow(st.model), null, 2).replace(/</g, "&lt;") + "</pre>"); };
     save.onclick = async function () {
       if (!st.name.trim()) { smsg.textContent = "Dê um nome ao flow."; smsg.className = "msg error"; return; }
-      var path = flow.id ? "/api/products/" + p.id + "/flows/" + flow.id : "/api/products/" + p.id + "/flows";
-      var r = await api(path, { name: st.name.trim(), flow_json: st.model });
-      if (r.ok) { smsg.textContent = "Flow salvo."; smsg.className = "msg ok"; if (!flow.id && r.data.id) flow.id = r.data.id; }
-      else { smsg.textContent = (r.data && r.data.error) || "Erro ao salvar."; smsg.className = "msg error"; }
+      var errs = validate(st.model).filter(function (e) { return e.k === "err"; });
+      if (errs.length) { smsg.textContent = "Corrija os erros antes de salvar: " + errs[0].m; smsg.className = "msg error"; return; }
+      var payload = { name: st.name.trim(), flow_json: { builder: st.model, flow: exportFlow(st.model) } };
+      var path = st.id ? "/api/products/" + p.id + "/flows/" + st.id : "/api/products/" + p.id + "/flows";
+      var r = await api(path, payload);
+      if (r.ok) { smsg.textContent = "Flow salvo."; smsg.className = "msg ok"; if (!st.id && r.data.id) st.id = r.data.id; } else { smsg.textContent = (r.data && r.data.error) || "Erro ao salvar."; smsg.className = "msg error"; }
     };
 
-    renderEditor();
+    renderAll();
   }
 
-  window.addEventListener("message", function (e) {
-    var d = e.data || {};
-    if (d.type === "garagem:resize" && d.height) {
-      var frames = document.getElementsByClassName("screen-frame");
-      for (var i = 0; i < frames.length; i++) { if (frames[i].contentWindow === e.source) frames[i].style.height = (d.height + 8) + "px"; }
-    }
-  });
-
+  window.addEventListener("message", function (e) { var d = e.data || {}; if (d.type === "garagem:resize" && d.height) { var frames = document.getElementsByClassName("screen-frame"); for (var i = 0; i < frames.length; i++) { if (frames[i].contentWindow === e.source) frames[i].style.height = (d.height + 8) + "px"; } } });
   (async function () { var res = await fetch("/auth/me", { credentials: "same-origin" }); if (res.ok) { var data = await res.json(); $("user-email").textContent = data.email; showApp(); } })();
 </script>
 </body>
