@@ -2,7 +2,7 @@
 
 Plataforma central de mensageria da Garagem. É o único aplicativo aprovado pela Meta (modelo **WhatsApp Business Tech Provider**) e funciona como camada de API que normaliza e centraliza o envio de mensagens para os demais produtos da empresa, evitando a necessidade de aprovar um novo aplicativo na Meta a cada produto.
 
-> Status: em construção. Consulte `docs/estudo-whatsapp-business-platform.md` para o estudo técnico que fundamenta a arquitetura.
+> Status: implantado em produção (https://messenger-container-production.up.railway.app). Consulte `docs/ARQUITETURA.md` para o resultado entregue e `docs/estudo-whatsapp-business-platform.md` para o estudo técnico que fundamenta a arquitetura.
 
 ## Visão geral
 
