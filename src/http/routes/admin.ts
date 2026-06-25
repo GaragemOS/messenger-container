@@ -202,4 +202,29 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
       productId: id, wabaId: b.waba_id ?? null, name: b.name, flowJson: b.flow_json ?? {},
     });
   });
+
+  app.get("/api/products/:id/flows/:fid", async (req, reply) => {
+    const { id, fid } = req.params as { id: string; fid: string };
+    const flow = await flowsRepo.getFlowDetail(id, fid);
+    if (!flow) {
+      reply.code(404);
+      return { error: "flow nao encontrado" };
+    }
+    return flow;
+  });
+
+  app.post("/api/products/:id/flows/:fid", async (req, reply) => {
+    const { id, fid } = req.params as { id: string; fid: string };
+    const b = (req.body ?? {}) as { name?: string; flow_json?: unknown };
+    if (!b.name) {
+      reply.code(400);
+      return { error: "name obrigatorio" };
+    }
+    if (!(await flowsRepo.getFlow(id, fid))) {
+      reply.code(404);
+      return { error: "flow nao encontrado" };
+    }
+    await flowsRepo.updateFlow(id, fid, b.name, b.flow_json ?? {});
+    return { ok: true };
+  });
 }
